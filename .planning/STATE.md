@@ -17,7 +17,7 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 | 1: Foundation | ✓ Complete | 4 | 100% |
 | 2: Site Adapters | ✓ Complete | 5 | 100% |
 | 3: Dynamic Content | ✓ Complete | 3 | 100% |
-| 4: UI & State | ○ In Progress | 6 | 17% |
+| 4: UI & State | ○ In Progress | 6 | 33% |
 | 5: Testing & Polish | ○ Pending | 5 | 0% |
 
 ## Current Position
@@ -28,7 +28,7 @@ Phase: 4 of 5 (UI & State Management) — In Progress
 - 03-03: Gemini Thinking Transitions — ✓ Complete
 - 04-01: Background Service Worker State Management — ✓ Complete
 
-Progress: ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░ 70%
+Progress: ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░ 73%
 
 ## Phase 3 Progress
 
@@ -71,6 +71,9 @@ None.
 | 2026-02-07 | Debug mode persistence | localStorage + URL param for troubleshooting across reloads |
 | 2026-02-07 | Visual indicator CSS | Pseudo-elements for minimal DOM impact, hover to reveal |
 | 2026-02-07 | Popup status display | Real-time adapter info, container count, dark mode detection |
+| 2026-02-07 | 320px popup width | Increased from 200px for better usability with multiple UI elements |
+| 2026-02-07 | CSS variables for theming | Claude color palette as custom properties for maintainability |
+| 2026-02-07 | Checkbox hack toggle | Accessible toggle switch without JavaScript dependency |
 | 2026-02-07 | Observer module extraction | Dedicated content/observer.js for reusability and testability |
 | 2026-02-07 | Performance monitoring | Track mutation batch processing time with performance.now() |
 | 2026-02-07 | Two-phase styling | Apply base styles immediately, enhance after streaming completes |
@@ -111,16 +114,16 @@ None.
 
 **Completed:**
 - 04-01: Background Service Worker state management with storage and badge updates ✓
+- 04-02: Popup UI HTML/CSS with ON/OFF toggle, theme selector, and status display ✓
 
 **Pending:**
-- 04-02: Popup UI for site toggle and settings
 - 04-03: Content script state integration
 
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Completed 04-01-PLAN.md (Background Service Worker State Management)
+Stopped at: Completed 04-02-PLAN.md (Popup UI HTML and CSS)
 Resume file: None - Phase 4 In Progress
 
 ---
-*Updated: 2026-02-07 after completing 04-01*
+*Updated: 2026-02-07 after completing 04-02*
