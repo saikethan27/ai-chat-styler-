@@ -14,7 +14,7 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 
 | Phase | Status | Requirements | Progress |
 |-------|--------|--------------|----------|
-| 1: Foundation | ◐ In Progress | 4 | 25% |
+| 1: Foundation | ◐ In Progress | 4 | 50% |
 | 2: Site Adapters | ○ Pending | 3 | 0% |
 | 3: Dynamic Content | ○ Pending | 3 | 0% |
 | 4: UI & State | ○ Pending | 6 | 0% |
@@ -22,8 +22,10 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 
 ## Active Work
 
-Plan 01-02: Create Claude Markdown CSS — Completed
-- content/claude-markdown.css created with scoped styling for all markdown elements
+Plan 01-03: Create Content Script Entry Point — Completed
+- content/inject.js created with adapter registry and CSS injection
+- content/adapters/generic.js created for universal markdown detection
+- MutationObserver set up for dynamic content handling
 
 ## Blockers
 
@@ -44,6 +46,19 @@ None.
 - web_elements.md has verified DOM selectors for all target sites
 - plan.md contains detailed architecture guidance
 - content/claude-markdown.css created with scoped markdown styling
+- content/inject.js created with adapter registry and CSS injection
+- content/adapters/generic.js created for universal markdown detection
+
+## Decisions Log
+
+| Date | Decision | Context |
+|------|----------|---------|
+| 2026-02-07 | Full extension scope | Building all components: manifest, adapters, popup, background |
+| 2026-02-07 | Include generic adapter | Universal markdown support for ChatGPT, Perplexity, etc. |
+| 2026-02-07 | YOLO mode | Auto-approve for streamlined development |
+| 2026-02-07 | Scoped CSS approach | Use .claude-styled class to avoid breaking host site UI |
+| 2026-02-07 | Adapter registry pattern | Extensible pattern for site-specific configurations |
+| 2026-02-07 | 100ms debounce for observer | Prevents performance thrashing on dynamic content |
 
 ---
-*Updated: 2026-02-07 after Plan 01-02 completion*
+*Updated: 2026-02-07 after Plan 01-03 completion*
