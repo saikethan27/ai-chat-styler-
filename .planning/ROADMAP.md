@@ -131,13 +131,14 @@
 7. Extension icon set created (16px, 48px, 128px)
 
 **Plans:**
-1. Create comprehensive test.html if not done in Phase 1
-2. Test on Gemini with various markdown-rich prompts
-3. Test on Kimi with various markdown-rich prompts
-4. Test dark/light mode switching
-5. Test toggle on/off functionality
-6. Create extension icons
-7. Final bug fixes and polish
+- [x] 05-01-PLAN.md — Create comprehensive test.html with all markdown elements
+- [x] 05-02-PLAN.md — Test on Gemini with various markdown-rich prompts
+- [x] 05-03-PLAN.md — Test on Kimi with various markdown-rich prompts
+- [x] 05-04-PLAN.md — Create extension icons at all required sizes
+- [x] 05-05-PLAN.md — Test toggle on/off and theme switching
+- [x] 05-06-PLAN.md — Final bug fixes, code cleanup, and documentation
+
+**Status:** ✓ Complete (2026-02-07)
 
 ---
 

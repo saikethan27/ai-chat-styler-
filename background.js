@@ -109,10 +109,28 @@ async function updateBadge(tabId, enabled) {
     if (enabled) {
       // Clear badge when enabled (show colored icon only)
       await chrome.action.setBadgeText({ text: '', tabId });
+      // Set active icon
+      await chrome.action.setIcon({
+        tabId,
+        path: {
+          16: 'icons/icon16.png',
+          48: 'icons/icon48.png',
+          128: 'icons/icon128.png'
+        }
+      });
     } else {
       // Show OFF badge when disabled
       await chrome.action.setBadgeText({ text: 'OFF', tabId });
       await chrome.action.setBadgeBackgroundColor({ color: '#999999', tabId });
+      // Set inactive icon
+      await chrome.action.setIcon({
+        tabId,
+        path: {
+          16: 'icons/icon16-inactive.png',
+          48: 'icons/icon48-inactive.png',
+          128: 'icons/icon128-inactive.png'
+        }
+      });
     }
     console.log(LOG_PREFIX, 'Badge updated for tab', tabId, '- enabled:', enabled);
   } catch (error) {
