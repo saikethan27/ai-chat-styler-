@@ -13,14 +13,36 @@ import genericAdapter from './adapters/generic.js';
 
 /**
  * Registry of site-specific adapters
- * Add new adapters here as they're created
+ * Priority order: specific adapters first, generic fallback last
  */
 const adapterRegistry = [
-  // Future site-specific adapters will be added here
-  // { name: 'gemini', adapter: geminiAdapter },
-  // { name: 'kimi', adapter: kimiAdapter },
+  geminiAdapter,  // gemini.google.com
+  kimiAdapter,    // kimi.ai / kimi.com
   genericAdapter, // Fallback - must be last
 ];
+
+// Current adapter instance
+let currentAdapter = null;
+
+/**
+ * Select appropriate adapter for current site
+ * @returns {Object|null} The selected adapter or null if none matches
+ */
+function selectAdapter() {
+  const hostname = window.location.hostname;
+
+  // Find first matching adapter (specific adapters first)
+  for (const adapter of adapterRegistry) {
+    if (adapter.hostMatch && adapter.hostMatch.test(hostname)) {
+      console.log(`[Claude UI Extension] Using adapter: ${adapter.name}`);
+      return adapter;
+    }
+  }
+
+  // Fallback to generic adapter (should always match due to /.*/)
+  console.log('[Claude UI Extension] Using generic adapter');
+  return genericAdapter;
+}
 
 // ============================================================================
 // CSS Injection
