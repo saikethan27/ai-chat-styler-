@@ -296,13 +296,14 @@ function isExcluded(element) {
 }
 
 /**
- * Apply detailed styling to a container using adapter selectors
- * @param {HTMLElement} container - The container to style
+ * Apply base styling immediately to a container
+ * This is called even during streaming to prevent unstyled content
+ * @param {HTMLElement} container
  */
-function applyStylingToContainer(container) {
-  logger.debug('Styling container:', container);
+function applyBaseStyling(container) {
+  logger.debug('Applying base styling to container:', container);
 
-  // Add styled class (using both old and new class for compatibility)
+  // Add styled classes
   if (!container.classList.contains('claude-styled')) {
     container.classList.add('claude-styled');
   }
@@ -310,7 +311,7 @@ function applyStylingToContainer(container) {
     container.classList.add('claude-ui-styled');
   }
 
-  // Apply dark mode detection
+  // Apply dark mode detection immediately
   const isDark = currentAdapter?.detectDarkMode?.() || false;
   logger.debug('Dark mode detected:', isDark);
 
@@ -320,6 +321,25 @@ function applyStylingToContainer(container) {
     }
   } else {
     container.classList.remove('claude-ui-dark');
+  }
+
+  // Mark container with timestamp for debugging
+  container.setAttribute('data-claude-styled-at', Date.now().toString());
+
+  logger.debug('Base styling applied');
+}
+
+/**
+ * Apply enhanced styling to a container
+ * Called after streaming/thinking completes or immediately if not streaming
+ * @param {HTMLElement} container
+ */
+function applyEnhancedStyling(container) {
+  logger.debug('Applying enhanced styling to container:', container);
+
+  // Mark as enhanced to prevent re-processing
+  if (!container.classList.contains('claude-ui-enhanced')) {
+    container.classList.add('claude-ui-enhanced');
   }
 
   // Style specific elements based on adapter selectors
@@ -370,7 +390,17 @@ function applyStylingToContainer(container) {
     }
   }
 
-  logger.info('Styled container successfully');
+  logger.info('Enhanced styling applied successfully');
+}
+
+/**
+ * Legacy alias for applyEnhancedStyling
+ * Maintains backward compatibility with existing code
+ * @param {HTMLElement} container - The container to style
+ */
+function applyStylingToContainer(container) {
+  applyBaseStyling(container);
+  applyEnhancedStyling(container);
 }
 
 /**
@@ -397,15 +427,9 @@ function applyStyling() {
 
   let styledCount = 0;
   let skippedCount = 0;
+  let pendingCount = 0;
 
   containers.forEach((container, index) => {
-    // Skip if already styled
-    if (container.classList.contains('claude-ui-styled')) {
-      logger.debug(`Container ${index}: already styled`);
-      skippedCount++;
-      return;
-    }
-
     // Skip excluded elements
     if (isExcluded(container)) {
       logger.debug(`Container ${index}: excluded`);
@@ -420,37 +444,43 @@ function applyStyling() {
       return;
     }
 
-    logger.info(`Container ${index}: styling...`);
+    // PHASE 1: Always apply base styling immediately
+    const isNewContainer = !container.classList.contains('claude-ui-styled');
+    if (isNewContainer) {
+      logger.info(`Container ${index}: applying base styling`);
+      applyBaseStyling(container);
+      styledCount++;
+    }
 
-    // Handle thinking state for Gemini
-    if (currentAdapter.handleThinkingState && currentAdapter.isThinking?.(container)) {
+    // PHASE 2: Apply enhanced styling or set up watcher
+    const isThinking = currentAdapter.handleThinkingState && currentAdapter.isThinking?.(container);
+    const isStreaming = currentAdapter.isStreaming?.(container);
+
+    if (isThinking) {
       logger.info(`Container ${index}: waiting for thinking to complete`);
+      pendingCount++;
       currentAdapter.waitForThinkingComplete(container).then(() => {
-        logger.info(`Container ${index}: thinking complete, applying styling`);
-        applyStylingToContainer(container);
-        styledCount++;
+        logger.info(`Container ${index}: thinking complete, applying enhanced styling`);
+        applyEnhancedStyling(container);
         updateCounts();
       });
-      return;
-    }
-
-    // Handle streaming for Kimi
-    if (currentAdapter.isStreaming?.(container)) {
-      logger.info(`Container ${index}: waiting for streaming to complete`);
+    } else if (isStreaming) {
+      logger.info(`Container ${index}: streaming detected, will enhance when complete`);
+      pendingCount++;
       currentAdapter.waitForStreamingComplete(container).then(() => {
-        logger.info(`Container ${index}: streaming complete, applying styling`);
-        applyStylingToContainer(container);
-        styledCount++;
+        logger.info(`Container ${index}: streaming complete, applying enhanced styling`);
+        applyEnhancedStyling(container);
         updateCounts();
       });
-      return;
+    } else {
+      // Not streaming/thinking - apply enhanced styling immediately
+      if (!container.classList.contains('claude-ui-enhanced')) {
+        applyEnhancedStyling(container);
+      }
     }
-
-    applyStylingToContainer(container);
-    styledCount++;
   });
 
-  logger.info('Styled:', styledCount, 'Skipped:', skippedCount);
+  logger.info('Base styled:', styledCount, 'Skipped:', skippedCount, 'Pending:', pendingCount);
   logger.groupEnd();
 
   styledContainerCount += styledCount;
