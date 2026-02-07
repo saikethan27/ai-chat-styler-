@@ -90,6 +90,10 @@ async function setSiteState(hostname, settings) {
 
     return true;
   } catch (error) {
+    // Handle storage quota exceeded
+    if (error.message && error.message.includes('QUOTA_BYTES_PER_ITEM')) {
+      console.error(LOG_PREFIX, 'Storage quota exceeded for', hostname, '. Consider cleaning up old site settings.');
+    }
     console.error(LOG_PREFIX, 'Failed to set site state for', hostname, ':', error);
     return false;
   }
@@ -124,8 +128,8 @@ async function updateBadgeForHostname(hostname) {
   try {
     const siteState = await getSiteState(hostname);
 
-    // Query all tabs with this hostname
-    const tabs = await chrome.tabs.query({ url: `*://${hostname}/*` });
+    // Get all tabs with this hostname
+    const tabs = await getTabsForHostname(hostname);
 
     for (const tab of tabs) {
       if (tab.id) {
@@ -175,7 +179,8 @@ async function updateBadgeForTab(tabId) {
  */
 async function broadcastStateChange(hostname, enabled) {
   try {
-    const tabs = await chrome.tabs.query({ url: `*://${hostname}/*` });
+    // Get all tabs with this hostname
+    const tabs = await getTabsForHostname(hostname);
 
     for (const tab of tabs) {
       if (tab.id) {
@@ -194,6 +199,21 @@ async function broadcastStateChange(hostname, enabled) {
     }
   } catch (error) {
     console.error(LOG_PREFIX, 'Failed to broadcast state change for', hostname, ':', error);
+  }
+}
+
+/**
+ * Get all tabs for a specific hostname
+ * @param {string} hostname - The hostname to query
+ * @returns {Promise<Array>} Array of tab objects
+ */
+async function getTabsForHostname(hostname) {
+  try {
+    const tabs = await chrome.tabs.query({ url: `*://${hostname}/*` });
+    return tabs;
+  } catch (error) {
+    console.error(LOG_PREFIX, 'Failed to query tabs for', hostname, ':', error);
+    return [];
   }
 }
 
