@@ -76,9 +76,9 @@ async function injectCSS(url) {
       target.appendChild(style);
     }
 
-    console.log(`[Claude UI] Injected CSS: ${url}`);
+    console.log(`[Claude UI Extension] Injected CSS: ${url}`);
   } catch (error) {
-    console.error(`[Claude UI] Error injecting CSS ${url}:`, error);
+    console.error(`[Claude UI Extension] Error injecting CSS ${url}:`, error);
   }
 }
 
@@ -101,23 +101,11 @@ async function injectMarkdownStyles() {
 // ============================================================================
 
 /**
- * Detects which site we're on and returns the appropriate adapter
+ * Legacy alias for selectAdapter()
  * @returns {Object} The adapter for the current site
  */
 function detectSite() {
-  const hostname = window.location.hostname;
-
-  // Find matching adapter based on hostname
-  for (const adapter of adapterRegistry) {
-    if (adapter.hostMatch.test(hostname)) {
-      console.log(`[Claude UI] Using adapter: ${adapter.name} for ${hostname}`);
-      return adapter;
-    }
-  }
-
-  // Fallback to generic adapter (should always match due to /.*/)
-  console.log(`[Claude UI] No specific adapter found, using generic for ${hostname}`);
-  return genericAdapter;
+  return selectAdapter();
 }
 
 // ============================================================================
@@ -161,7 +149,7 @@ function detectAndApplyDarkMode(container, adapter) {
  */
 function styleMarkdownContainers(adapter) {
   if (!adapter || !adapter.responseContainerSelector) {
-    console.warn('[Claude UI] No adapter or selector available');
+    console.warn('[Claude UI Extension] No adapter or selector available');
     return;
   }
 
@@ -181,7 +169,7 @@ function styleMarkdownContainers(adapter) {
   });
 
   if (containers.length > 0) {
-    console.log(`[Claude UI] Styled ${containers.length} markdown container(s)`);
+    console.log(`[Claude UI Extension] Styled ${containers.length} markdown container(s)`);
   }
 }
 
@@ -267,7 +255,7 @@ function setupMutationObserver(adapter) {
     attributeFilter: ['class', 'data-theme'],
   });
 
-  console.log('[Claude UI] MutationObserver set up');
+  console.log('[Claude UI Extension] MutationObserver set up');
 }
 
 /**
@@ -288,17 +276,48 @@ function cleanup() {
 // ============================================================================
 
 /**
+ * Determine if adapter should activate on this page
+ * Generic adapter only activates if markdown containers are found
+ * @returns {boolean}
+ */
+function shouldActivate() {
+  // Generic adapter: only activate if markdown containers found
+  if (currentAdapter.name === 'generic') {
+    const containers = document.querySelectorAll(currentAdapter.responseContainerSelector);
+    if (containers.length === 0) {
+      return false;
+    }
+    console.log(`[Claude UI Extension] Found ${containers.length} markdown containers`);
+  }
+
+  return true;
+}
+
+/**
  * Main initialization function
  */
 async function initialize() {
-  console.log('[Claude UI] Initializing...');
+  console.log('[Claude UI Extension] Initializing...');
 
   try {
-    // Detect site and get appropriate adapter
-    const adapter = detectSite();
+    // Select adapter for current site
+    currentAdapter = selectAdapter();
+
+    if (!currentAdapter) {
+      console.error('[Claude UI Extension] No adapter found');
+      return;
+    }
+
+    // Check if adapter should activate on this page
+    if (!shouldActivate()) {
+      console.log('[Claude UI Extension] Adapter not activating on this page');
+      return;
+    }
+
+    console.log(`[Claude UI Extension] Initializing ${currentAdapter.name} adapter`);
 
     // Wait for initial delay (allows page to settle)
-    const delay = adapter.initialDelayMs || 200;
+    const delay = currentAdapter.initialDelayMs || 200;
     await new Promise(resolve => setTimeout(resolve, delay));
 
     // Inject CSS
@@ -306,20 +325,20 @@ async function initialize() {
     await injectMarkdownStyles();
 
     // Apply styling to existing containers
-    styleMarkdownContainers(adapter);
+    styleMarkdownContainers(currentAdapter);
 
     // Set up observer for dynamic content
-    setupMutationObserver(adapter);
+    setupMutationObserver(currentAdapter);
 
     // Listen for dark mode changes
     const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     darkModeMediaQuery.addEventListener('change', () => {
-      styleMarkdownContainers(adapter);
+      styleMarkdownContainers(currentAdapter);
     });
 
-    console.log('[Claude UI] Initialization complete');
+    console.log('[Claude UI Extension] Initialization complete');
   } catch (error) {
-    console.error('[Claude UI] Initialization failed:', error);
+    console.error('[Claude UI Extension] Initialization failed:', error);
   }
 }
 
