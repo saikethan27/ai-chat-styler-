@@ -113,15 +113,117 @@ function detectSite() {
 // ============================================================================
 
 /**
- * Applies .claude-styled class to a container
+ * Check if element is excluded based on adapter's excludeSelectors
+ * @param {HTMLElement} element - The element to check
+ * @returns {boolean}
+ */
+function isExcluded(element) {
+  if (!currentAdapter || !currentAdapter.excludeSelectors) return false;
+
+  return currentAdapter.excludeSelectors.some(selector => {
+    return element.matches(selector) || element.closest(selector);
+  });
+}
+
+/**
+ * Apply detailed styling to a container using adapter selectors
  * @param {HTMLElement} container - The container to style
  */
-function applyStyling(container) {
-  if (!container) return;
-
+function applyStylingToContainer(container) {
+  // Add styled class
   if (!container.classList.contains('claude-styled')) {
     container.classList.add('claude-styled');
   }
+
+  // Apply dark mode detection
+  const isDark = currentAdapter?.detectDarkMode?.() || false;
+  if (isDark) {
+    if (!container.classList.contains('claude-ui-dark')) {
+      container.classList.add('claude-ui-dark');
+    }
+  } else {
+    container.classList.remove('claude-ui-dark');
+  }
+
+  // Style specific elements based on adapter selectors
+  const { selectors } = currentAdapter || {};
+  if (selectors) {
+    // Style headings
+    if (selectors.headings) {
+      container.querySelectorAll(selectors.headings).forEach(el => {
+        if (!el.classList.contains('claude-ui-heading')) {
+          el.classList.add('claude-ui-heading');
+        }
+      });
+    }
+
+    // Style code blocks
+    if (selectors.codeBlocks) {
+      container.querySelectorAll(selectors.codeBlocks).forEach(el => {
+        if (!el.classList.contains('claude-ui-code')) {
+          el.classList.add('claude-ui-code');
+        }
+      });
+    }
+
+    // Style tables
+    if (selectors.tables) {
+      container.querySelectorAll(selectors.tables).forEach(el => {
+        if (!el.classList.contains('claude-ui-table')) {
+          el.classList.add('claude-ui-table');
+        }
+      });
+    }
+
+    // Style lists
+    if (selectors.lists) {
+      container.querySelectorAll(selectors.lists).forEach(el => {
+        if (!el.classList.contains('claude-ui-list')) {
+          el.classList.add('claude-ui-list');
+        }
+      });
+    }
+  }
+
+  console.log('[Claude UI Extension] Styled container:', container);
+}
+
+/**
+ * Applies styling to all matching containers with adapter-specific handling
+ * Handles thinking states (Gemini) and streaming (Kimi)
+ */
+function applyStyling() {
+  if (!currentAdapter) return;
+
+  const containers = document.querySelectorAll(currentAdapter.responseContainerSelector);
+
+  containers.forEach(container => {
+    // Skip excluded elements
+    if (isExcluded(container)) return;
+
+    // Skip already styled containers
+    if (container.classList.contains('claude-styled')) return;
+
+    // Handle thinking state for Gemini
+    if (currentAdapter.handleThinkingState && currentAdapter.isThinking?.(container)) {
+      console.log('[Claude UI Extension] Waiting for thinking to complete');
+      currentAdapter.waitForThinkingComplete(container).then(() => {
+        applyStylingToContainer(container);
+      });
+      return;
+    }
+
+    // Handle streaming for Kimi
+    if (currentAdapter.isStreaming?.(container)) {
+      console.log('[Claude UI Extension] Waiting for streaming to complete');
+      currentAdapter.waitForStreamingComplete(container).then(() => {
+        applyStylingToContainer(container);
+      });
+      return;
+    }
+
+    applyStylingToContainer(container);
+  });
 }
 
 /**
@@ -153,24 +255,8 @@ function styleMarkdownContainers(adapter) {
     return;
   }
 
-  const containers = document.querySelectorAll(adapter.responseContainerSelector);
-
-  containers.forEach(container => {
-    // Skip excluded elements
-    if (adapter.excludeSelectors && adapter.excludeSelectors.length > 0) {
-      const isExcluded = adapter.excludeSelectors.some(selector =>
-        container.matches(selector) || container.closest(selector)
-      );
-      if (isExcluded) return;
-    }
-
-    applyStyling(container);
-    detectAndApplyDarkMode(container, adapter);
-  });
-
-  if (containers.length > 0) {
-    console.log(`[Claude UI Extension] Styled ${containers.length} markdown container(s)`);
-  }
+  // Use the enhanced applyStyling function
+  applyStyling();
 }
 
 // ============================================================================
