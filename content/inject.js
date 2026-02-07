@@ -285,32 +285,32 @@ function debounce(func, wait) {
 
 /**
  * Sets up MutationObserver to watch for new markdown containers
- * @param {Object} adapter - The current adapter
+ * Uses currentAdapter for selector matching
  */
-function setupMutationObserver(adapter) {
+function setupMutationObserver() {
   if (observer) {
     observer.disconnect();
   }
 
   const debouncedStyle = debounce(() => {
-    styleMarkdownContainers(adapter);
+    applyStyling();
   }, 100);
 
   observer = new MutationObserver((mutations) => {
     let shouldRestyle = false;
 
-    for (const mutation of mutations) {
+    mutations.forEach(mutation => {
       // Check if nodes were added
       if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
         for (const node of mutation.addedNodes) {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // Check if the added node is or contains a markdown container
             const element = /** @type {HTMLElement} */ (node);
-            if (element.matches && element.matches(adapter.responseContainerSelector)) {
+            if (element.matches?.(currentAdapter?.responseContainerSelector)) {
               shouldRestyle = true;
               break;
             }
-            if (element.querySelector && element.querySelector(adapter.responseContainerSelector)) {
+            if (element.querySelector?.(currentAdapter?.responseContainerSelector)) {
               shouldRestyle = true;
               break;
             }
@@ -325,9 +325,7 @@ function setupMutationObserver(adapter) {
           shouldRestyle = true;
         }
       }
-
-      if (shouldRestyle) break;
-    }
+    });
 
     if (shouldRestyle) {
       debouncedStyle();
@@ -414,7 +412,7 @@ async function initialize() {
     styleMarkdownContainers(currentAdapter);
 
     // Set up observer for dynamic content
-    setupMutationObserver(currentAdapter);
+    setupMutationObserver();
 
     // Listen for dark mode changes
     const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
