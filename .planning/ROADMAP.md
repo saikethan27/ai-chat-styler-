@@ -101,12 +101,12 @@
 5. Extension badge shows active/inactive state
 
 **Plans:**
-1. Create popup/popup.html with toggle, theme selector, and status
-2. Create popup/popup.css with Claude-styled UI
-3. Create popup/popup.js for interaction handling
-4. Create background.js service worker
-5. Implement chrome.storage.sync for settings
-6. Add badge icon updates based on active state
+- [x] 04-01-PLAN.md — Background service worker with state management and storage
+- [x] 04-02-PLAN.md — Popup UI HTML/CSS with toggle, theme selector, and status
+- [x] 04-03-PLAN.md — Popup JavaScript with message passing and state sync
+- [x] 04-04-PLAN.md — Content script updates for toggle OFF and theme override
+
+**Status:** ✓ Complete (2026-02-07)
 
 ---
 

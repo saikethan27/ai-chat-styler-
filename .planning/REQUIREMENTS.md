@@ -20,21 +20,21 @@
 
 ### Dynamic Content
 
-- [ ] **OBSV-01**: MutationObserver with debouncing (100ms) for streaming content
-- [ ] **OBSV-02**: Re-apply styling when new markdown containers appear
-- [ ] **OBSV-03**: Handle "thinking" → "done" transitions on Gemini
+- [x] **OBSV-01**: MutationObserver with debouncing (100ms) for streaming content
+- [x] **OBSV-02**: Re-apply styling when new markdown containers appear
+- [x] **OBSV-03**: Handle "thinking" → "done" transitions on Gemini
 
 ### Popup UI
 
-- [ ] **POPUP-01**: ON/OFF toggle for current site
-- [ ] **POPUP-02**: Light/Dark theme selector (override auto-detection)
-- [ ] **POPUP-03**: Status indicator showing "Active on [site]" or "No markdown detected"
+- [x] **POPUP-01**: ON/OFF toggle for current site
+- [x] **POPUP-02**: Light/Dark theme selector (override auto-detection)
+- [x] **POPUP-03**: Status indicator showing "Active on [site]" or "No markdown detected"
 
 ### Background Service
 
-- [ ] **BKGD-01**: Service worker managing extension state
-- [ ] **BKGD-02**: Per-site enabled/disabled state in chrome.storage.sync
-- [ ] **BKGD-03**: Badge icon updates (active/inactive state)
+- [x] **BKGD-01**: Service worker managing extension state
+- [x] **BKGD-02**: Per-site enabled/disabled state in chrome.storage.sync
+- [x] **BKGD-03**: Badge icon updates (active/inactive state)
 
 ### Testing & Quality
 
@@ -81,15 +81,15 @@
 | ADPT-01 | Phase 2 | Complete |
 | ADPT-02 | Phase 2 | Complete |
 | ADPT-03 | Phase 2 | Complete |
-| OBSV-01 | Phase 3 | Pending |
-| OBSV-02 | Phase 3 | Pending |
-| OBSV-03 | Phase 3 | Pending |
-| POPUP-01 | Phase 4 | Pending |
-| POPUP-02 | Phase 4 | Pending |
-| POPUP-03 | Phase 4 | Pending |
-| BKGD-01 | Phase 4 | Pending |
-| BKGD-02 | Phase 4 | Pending |
-| BKGD-03 | Phase 4 | Pending |
+| OBSV-01 | Phase 3 | Complete |
+| OBSV-02 | Phase 3 | Complete |
+| OBSV-03 | Phase 3 | Complete |
+| POPUP-01 | Phase 4 | Complete |
+| POPUP-02 | Phase 4 | Complete |
+| POPUP-03 | Phase 4 | Complete |
+| BKGD-01 | Phase 4 | Complete |
+| BKGD-02 | Phase 4 | Complete |
+| BKGD-03 | Phase 4 | Complete |
 | TEST-01 | Phase 5 | Pending |
 | TEST-02 | Phase 5 | Pending |
 | TEST-03 | Phase 5 | Pending |
@@ -103,4 +103,4 @@
 
 ---
 *Requirements defined: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 2 completion*
+*Last updated: 2026-02-07 after Phase 4 completion*
