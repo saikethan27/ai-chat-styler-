@@ -7,10 +7,10 @@
 
 ### Core Extension
 
-- [ ] **CORE-01**: Extension manifest (V3) with proper permissions (activeTab, scripting, storage)
-- [ ] **CORE-02**: Claude color palette CSS variables injected into pages via content script
-- [ ] **CORE-03**: Universal markdown restyling CSS covering: headings (h1-h6), bold/strong text, inline code, code blocks, lists (ul/ol), blockquotes, tables, links, horizontal rules
-- [ ] **CORE-04**: Content script entry point that detects site and loads appropriate adapter
+- [x] **CORE-01**: Extension manifest (V3) with proper permissions (activeTab, scripting, storage)
+- [x] **CORE-02**: Claude color palette CSS variables injected into pages via content script
+- [x] **CORE-03**: Universal markdown restyling CSS covering: headings (h1-h6), bold/strong text, inline code, code blocks, lists (ul/ol), blockquotes, tables, links, horizontal rules
+- [x] **CORE-04**: Content script entry point that detects site and loads appropriate adapter
 
 ### Site Adapters
 
@@ -74,10 +74,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CORE-01 | Phase 1 | Pending |
-| CORE-02 | Phase 1 | Pending |
-| CORE-03 | Phase 1 | Pending |
-| CORE-04 | Phase 1 | Pending |
+| CORE-01 | Phase 1 | Complete |
+| CORE-02 | Phase 1 | Complete |
+| CORE-03 | Phase 1 | Complete |
+| CORE-04 | Phase 1 | Complete |
 | ADPT-01 | Phase 2 | Pending |
 | ADPT-02 | Phase 2 | Pending |
 | ADPT-03 | Phase 2 | Pending |
@@ -103,4 +103,4 @@
 
 ---
 *Requirements defined: 2026-02-07*
-*Last updated: 2026-02-07 after initial definition*
+*Last updated: 2026-02-07 after Phase 1 completion*
