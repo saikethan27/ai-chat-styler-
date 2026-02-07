@@ -38,22 +38,35 @@ function debounce(func, wait) {
  * @param {MutationRecord[]} mutations - Array of mutation records
  * @param {Object} options - Configuration options
  */
+/**
+ * Handles mutation records with performance tracking
+ * @param {MutationRecord[]} mutations - Array of mutation records
+ * @param {Object} options - Configuration options
+ */
 function handleMutations(mutations, options) {
   const startTime = performance.now();
   perfMetrics.mutationCount += mutations.length;
   perfMetrics.batchCount++;
 
   let shouldNotify = false;
+  let newContainerCount = 0;
 
   for (const mutation of mutations) {
     if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
       for (const node of mutation.addedNodes) {
         if (node.nodeType === Node.ELEMENT_NODE) {
           const element = /** @type {HTMLElement} */ (node);
-          // Check if added node matches or contains the selector
-          if (element.matches?.(options.selector) ||
-              element.querySelector?.(options.selector)) {
+          // Check if added node IS a container
+          if (element.matches?.(options.selector)) {
             shouldNotify = true;
+            newContainerCount++;
+            break;
+          }
+
+          // Check if added node CONTAINS containers
+          if (element.querySelector?.(options.selector)) {
+            shouldNotify = true;
+            newContainerCount++;
             break;
           }
         }
@@ -73,6 +86,9 @@ function handleMutations(mutations, options) {
   }
 
   if (shouldNotify && options.onContainersFound) {
+    if (options.logger?.debug) {
+      options.logger.debug(`New containers detected: ${newContainerCount}`);
+    }
     options.onContainersFound();
   }
 
