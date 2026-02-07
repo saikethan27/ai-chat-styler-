@@ -17,7 +17,7 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 | 1: Foundation | ✓ Complete | 4 | 100% |
 | 2: Site Adapters | ✓ Complete | 5 | 100% |
 | 3: Dynamic Content | ✓ Complete | 3 | 100% |
-| 4: UI & State | ○ In Progress | 6 | 33% |
+| 4: UI & State | ○ In Progress | 6 | 50% |
 | 5: Testing & Polish | ○ Pending | 5 | 0% |
 
 ## Current Position
@@ -43,10 +43,11 @@ Progress: ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓�
 
 **Completed:**
 - 04-01: Background Service Worker with per-site state management, chrome.storage.sync persistence, and badge updates ✓
+- 04-02: Popup UI HTML/CSS with ON/OFF toggle, theme selector, and status display ✓
+- 04-03: Popup JavaScript with state synchronization, toggle handling, theme selection, and real-time status updates ✓
 
-**In Progress:**
-- 04-02: Popup UI for toggling site state
-- 04-03: Content script state integration
+**Pending:**
+- 04-04: Content script state integration
 
 ## Blockers
 
@@ -86,6 +87,9 @@ None.
 | 2026-02-07 | Badge OFF indicator | Show 'OFF' text badge when disabled on a site |
 | 2026-02-07 | State broadcast pattern | All tabs of same hostname receive state change messages |
 | 2026-02-07 | Graceful storage errors | Return safe defaults if storage operations fail |
+| 2026-02-07 | Popup state management | DOM caching, async initialization, error recovery |
+| 2026-02-07 | Real-time status polling | 2-second intervals with cleanup on popup close |
+| 2026-02-07 | Bidirectional message passing | Popup ↔ Background ↔ Content Script protocol |
 
 ## Notes
 
@@ -115,15 +119,16 @@ None.
 **Completed:**
 - 04-01: Background Service Worker state management with storage and badge updates ✓
 - 04-02: Popup UI HTML/CSS with ON/OFF toggle, theme selector, and status display ✓
+- 04-03: Popup JavaScript with state synchronization and real-time updates ✓
 
 **Pending:**
-- 04-03: Content script state integration
+- 04-04: Content script state integration
 
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Completed 04-02-PLAN.md (Popup UI HTML and CSS)
+Stopped at: Completed 04-03-PLAN.md (Popup JavaScript Implementation)
 Resume file: None - Phase 4 In Progress
 
 ---
-*Updated: 2026-02-07 after completing 04-02*
+*Updated: 2026-02-07 after completing 04-03*
