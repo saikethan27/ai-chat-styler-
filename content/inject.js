@@ -187,6 +187,7 @@ function injectVisualIndicatorStyles() {
   `;
 
   document.head.appendChild(style);
+  trackInjectedStyle(styleId);  // Track for cleanup
   logger.debug('Visual indicator styles injected (with thinking state)');
 }
 
@@ -240,6 +241,122 @@ const adapterRegistry = [
 // Current adapter instance
 let currentAdapter = null;
 
+// ============================================================================
+// State Management
+// ============================================================================
+
+let isEnabled = true;  // Current enabled state for this site
+let injectedStyles = [];  // Track injected style elements for cleanup
+
+/**
+ * Check if extension is enabled for current site
+ * Queries background service worker for per-site state
+ */
+async function checkEnabledState() {
+  try {
+    const hostname = window.location.hostname;
+    const response = await chrome.runtime.sendMessage({
+      action: 'getSiteState',
+      hostname: hostname
+    });
+
+    isEnabled = response?.enabled !== false;  // Default to true
+    logger.info('Extension enabled for this site:', isEnabled);
+
+    return isEnabled;
+  } catch (error) {
+    logger.warn('Failed to check enabled state, defaulting to enabled:', error);
+    isEnabled = true;
+    return true;
+  }
+}
+
+/**
+ * Disable all styling on the page
+ * Removes classes, injected styles, and disconnects observer
+ */
+function disableStyling() {
+  logger.info('Disabling styling...');
+
+  isEnabled = false;
+
+  // 1. Disconnect observer to stop processing mutations
+  disconnectObserver();
+
+  // 2. Remove all injected style elements
+  injectedStyles.forEach(styleId => {
+    const style = document.getElementById(styleId);
+    if (style) {
+      style.remove();
+      logger.debug('Removed style:', styleId);
+    }
+  });
+  injectedStyles = [];
+
+  // 3. Remove all styling classes from containers
+  const styledContainers = document.querySelectorAll('.claude-ui-styled, .claude-styled');
+  styledContainers.forEach(container => {
+    container.classList.remove(
+      'claude-ui-styled',
+      'claude-styled',
+      'claude-ui-dark',
+      'claude-ui-enhanced',
+      'claude-ui-thinking',
+      'claude-ui-thinking-complete'
+    );
+
+    // Remove data attributes
+    container.removeAttribute('data-claude-styled-at');
+  });
+
+  // 4. Remove element-level classes
+  const styledElements = document.querySelectorAll(
+    '.claude-ui-heading, .claude-ui-code, .claude-ui-table, .claude-ui-list'
+  );
+  styledElements.forEach(el => {
+    el.classList.remove('claude-ui-heading', 'claude-ui-code', 'claude-ui-table', 'claude-ui-list');
+  });
+
+  // 5. Remove debug class from body
+  document.body.classList.remove('claude-ui-debug');
+
+  // 6. Remove status badge
+  if (statusBadge) {
+    statusBadge.remove();
+    statusBadge = null;
+  }
+
+  // 7. Remove theme override classes
+  document.documentElement.classList.remove('claude-force-light', 'claude-force-dark');
+  document.body.classList.remove('claude-force-light', 'claude-force-dark');
+
+  logger.info('Styling disabled successfully');
+}
+
+/**
+ * Re-enable styling on the page
+ * Re-runs initialization
+ */
+async function enableStyling() {
+  logger.info('Enabling styling...');
+
+  isEnabled = true;
+
+  // Re-run initialization
+  await initialize();
+
+  logger.info('Styling enabled successfully');
+}
+
+/**
+ * Track injected style element for later cleanup
+ */
+function trackInjectedStyle(styleId) {
+  if (!injectedStyles.includes(styleId)) {
+    injectedStyles.push(styleId);
+  }
+}
+
 /**
  * Select appropriate adapter for current site
  * @returns {Object|null} The selected adapter or null if none matches
@@ -283,13 +400,15 @@ async function injectCSS(url) {
 
     // Create style element
     const style = document.createElement('style');
-    style.id = `claude-ui-${url.replace(/[^a-zA-Z0-9]/g, '-')}`;
+    const styleId = `claude-ui-${url.replace(/[^a-zA-Z0-9]/g, '-')}`;
+    style.id = styleId;
     style.textContent = cssText;
 
     // Inject into document head
     const target = document.head || document.documentElement;
     if (target) {
       target.appendChild(style);
+      trackInjectedStyle(styleId);  // Track for cleanup
     }
 
     logger.info('Injected CSS:', url);
@@ -809,6 +928,14 @@ async function initialize() {
   logger.group('Initializing Claude UI Extension');
 
   try {
+    // Check if enabled for this site FIRST
+    const enabled = await checkEnabledState();
+    if (!enabled) {
+      logger.info('Extension disabled for this site, skipping initialization');
+      logger.groupEnd();
+      return;
+    }
+
     // Inject visual styles
     injectVisualIndicatorStyles();
 
