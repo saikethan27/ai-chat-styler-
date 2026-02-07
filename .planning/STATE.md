@@ -1,6 +1,6 @@
 # Project State: Claude UI/UX Chrome Extension
 
-**Current Phase:** Phase 3 In Progress
+**Current Phase:** Phase 4 In Progress
 **Last Updated:** 2026-02-07
 
 ## Project Reference
@@ -8,7 +8,7 @@
 See: .planning/PROJECT.md (updated 2026-02-07)
 
 **Core value:** Users can enjoy Claude's beautiful, readable markdown styling on any AI chat platform with a single toggle
-**Current focus:** Phase 3 — Dynamic Content
+**Current focus:** Phase 4 — UI & State Management
 
 ## Phase Status
 
@@ -17,17 +17,18 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 | 1: Foundation | ✓ Complete | 4 | 100% |
 | 2: Site Adapters | ✓ Complete | 5 | 100% |
 | 3: Dynamic Content | ✓ Complete | 3 | 100% |
-| 4: UI & State | ○ In Progress | 6 | 0% |
+| 4: UI & State | ○ In Progress | 6 | 17% |
 | 5: Testing & Polish | ○ Pending | 5 | 0% |
 
 ## Current Position
 
-Phase: 3 of 5 (Dynamic Content) — Complete
+Phase: 4 of 5 (UI & State Management) — In Progress
 - 03-01: MutationObserver Module — ✓ Complete
 - 03-02: Streaming Content Handling — ✓ Complete
 - 03-03: Gemini Thinking Transitions — ✓ Complete
+- 04-01: Background Service Worker State Management — ✓ Complete
 
-Progress: ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░ 67%
+Progress: ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░ 70%
 
 ## Phase 3 Progress
 
@@ -36,7 +37,16 @@ Progress: ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓�
 - 03-02: Streaming Content Handling with two-phase styling ✓
 - 03-03: Gemini Thinking Transitions with visual feedback ✓
 
-**Phase 3 Complete** - Ready for Phase 4: UI & State
+**Phase 3 Complete**
+
+## Phase 4 Progress
+
+**Completed:**
+- 04-01: Background Service Worker with per-site state management, chrome.storage.sync persistence, and badge updates ✓
+
+**In Progress:**
+- 04-02: Popup UI for toggling site state
+- 04-03: Content script state integration
 
 ## Blockers
 
@@ -69,6 +79,10 @@ None.
 | 2026-02-07 | Thinking state visual feedback | Flash animation and status badge on thinking → done transition |
 | 2026-02-07 | Observer pattern for thinking | observeThinkingState() for bidirectional state detection |
 | 2026-02-07 | Dual API design | Promise-based with optional callback support for flexibility |
+| 2026-02-07 | chrome.storage.sync for state | Cross-device persistence for per-site settings |
+| 2026-02-07 | Badge OFF indicator | Show 'OFF' text badge when disabled on a site |
+| 2026-02-07 | State broadcast pattern | All tabs of same hostname receive state change messages |
+| 2026-02-07 | Graceful storage errors | Return safe defaults if storage operations fail |
 
 ## Notes
 
@@ -93,11 +107,20 @@ None.
 
 **Phase 3 Complete**
 
+## Phase 4 Plans Status
+
+**Completed:**
+- 04-01: Background Service Worker state management with storage and badge updates ✓
+
+**Pending:**
+- 04-02: Popup UI for site toggle and settings
+- 04-03: Content script state integration
+
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Completed 03-03-PLAN.md (Gemini Thinking Transitions)
-Resume file: None - Phase 3 Complete
+Stopped at: Completed 04-01-PLAN.md (Background Service Worker State Management)
+Resume file: None - Phase 4 In Progress
 
 ---
-*Updated: 2026-02-07 after completing 03-03*
+*Updated: 2026-02-07 after completing 04-01*
