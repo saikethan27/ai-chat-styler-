@@ -1,12 +1,9 @@
 /**
  * Content Script Entry Point
  * Detects site, loads appropriate adapter, and injects Claude styling
- */
-
-import geminiAdapter from './adapters/gemini.js';
-import kimiAdapter from './adapters/kimi.js';
-import genericAdapter from './adapters/generic.js';
-import { createObserver, disconnectObserver, getObserverStats } from './observer.js';
+ *
+ * Note: This file is loaded as a classic script (not ES module) by Chrome.
+ * Dependencies (adapters, observer) are loaded via manifest.json and expose globals.
 
 // ============================================================================
 // Logging Utility
@@ -308,11 +305,12 @@ async function checkAndApplyThemeOverride() {
 /**
  * Registry of site-specific adapters
  * Priority order: specific adapters first, generic fallback last
+ * Note: Adapters are loaded via manifest.json and expose globals
  */
 const adapterRegistry = [
-  geminiAdapter,  // gemini.google.com
-  kimiAdapter,    // kimi.ai / kimi.com
-  genericAdapter, // Fallback - must be last
+  window.geminiAdapter,  // gemini.google.com
+  window.kimiAdapter,    // kimi.ai / kimi.com
+  window.genericAdapter, // Fallback - must be last
 ];
 
 // Current adapter instance
@@ -358,7 +356,9 @@ function disableStyling() {
   isEnabled = false;
 
   // 1. Disconnect observer to stop processing mutations
-  disconnectObserver();
+  if (window.claudeUIObserver) {
+    window.claudeUIObserver.disconnectObserver();
+  }
 
   // 2. Remove all injected style elements
   injectedStyles.forEach(styleId => {
@@ -451,7 +451,7 @@ function selectAdapter() {
 
   // Fallback to generic adapter (should always match due to /.*/)
   logger.info('Using generic adapter');
-  return genericAdapter;
+  return window.genericAdapter;
 }
 
 // ============================================================================
@@ -905,10 +905,12 @@ function debounce(func, wait) {
  */
 function setupMutationObserver() {
   // Disconnect any existing observer
-  disconnectObserver();
+  if (window.claudeUIObserver) {
+    window.claudeUIObserver.disconnectObserver();
+  }
 
   // Create new observer with current adapter config
-  const observer = createObserver({
+  const observer = window.claudeUIObserver?.createObserver({
     selector: currentAdapter?.responseContainerSelector,
     onContainersFound: () => {
       logger.debug('New containers detected, re-applying styling');
@@ -927,7 +929,9 @@ function setupMutationObserver() {
  * Cleans up the observer when needed
  */
 function cleanup() {
-  disconnectObserver();
+  if (window.claudeUIObserver) {
+    window.claudeUIObserver.disconnectObserver();
+  }
   if (debounceTimer) {
     clearTimeout(debounceTimer);
   }

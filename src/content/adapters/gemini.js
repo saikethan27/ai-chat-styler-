@@ -206,4 +206,7 @@ const geminiAdapter = {
   }
 };
 
-export default geminiAdapter;
+// Make adapter available globally
+if (typeof window !== 'undefined') {
+  window.geminiAdapter = geminiAdapter;
+}

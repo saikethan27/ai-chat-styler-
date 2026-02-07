@@ -206,3 +206,14 @@ export function resetObserverStats() {
 export function isObserverActive() {
   return isObserving;
 }
+
+// Make observer functions available globally
+if (typeof window !== 'undefined') {
+  window.claudeUIObserver = {
+    createObserver,
+    disconnectObserver,
+    getObserverStats,
+    resetObserverStats,
+    isObserverActive
+  };
+}

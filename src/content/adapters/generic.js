@@ -238,5 +238,8 @@ function applySiteEnhancements(container) {
   }
 }
 
-export default genericAdapter;
-export { applySiteEnhancements };
+// Make adapter available globally
+if (typeof window !== 'undefined') {
+  window.genericAdapter = genericAdapter;
+  window.applySiteEnhancements = applySiteEnhancements;
+}

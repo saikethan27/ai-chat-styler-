@@ -14,7 +14,13 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content/inject.js"],
+      "js": [
+        "content/adapters/gemini.js",
+        "content/adapters/kimi.js",
+        "content/adapters/generic.js",
+        "content/observer.js",
+        "content/inject.js"
+      ],
       "run_at": "document_idle"
     }
   ],

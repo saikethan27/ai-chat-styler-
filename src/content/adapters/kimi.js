@@ -132,4 +132,7 @@ const kimiAdapter = {
   }
 };
 
-export default kimiAdapter;
+// Make adapter available globally
+if (typeof window !== 'undefined') {
+  window.kimiAdapter = kimiAdapter;
+}
