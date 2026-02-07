@@ -14,9 +14,9 @@
 
 ### Site Adapters
 
-- [ ] **ADPT-01**: Gemini adapter with browser-verified DOM selectors
-- [ ] **ADPT-02**: Kimi adapter with browser-verified DOM selectors
-- [ ] **ADPT-03**: Generic adapter for universal markdown support (GitHub, ChatGPT, Perplexity, etc.)
+- [x] **ADPT-01**: Gemini adapter with browser-verified DOM selectors
+- [x] **ADPT-02**: Kimi adapter with browser-verified DOM selectors
+- [x] **ADPT-03**: Generic adapter for universal markdown support (GitHub, ChatGPT, Perplexity, etc.)
 
 ### Dynamic Content
 
@@ -78,9 +78,9 @@
 | CORE-02 | Phase 1 | Complete |
 | CORE-03 | Phase 1 | Complete |
 | CORE-04 | Phase 1 | Complete |
-| ADPT-01 | Phase 2 | Pending |
-| ADPT-02 | Phase 2 | Pending |
-| ADPT-03 | Phase 2 | Pending |
+| ADPT-01 | Phase 2 | Complete |
+| ADPT-02 | Phase 2 | Complete |
+| ADPT-03 | Phase 2 | Complete |
 | OBSV-01 | Phase 3 | Pending |
 | OBSV-02 | Phase 3 | Pending |
 | OBSV-03 | Phase 3 | Pending |
@@ -103,4 +103,4 @@
 
 ---
 *Requirements defined: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 1 completion*
+*Last updated: 2026-02-07 after Phase 2 completion*
