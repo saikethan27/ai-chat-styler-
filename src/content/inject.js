@@ -4,6 +4,7 @@
  *
  * Note: This file is loaded as a classic script (not ES module) by Chrome.
  * Dependencies (adapters, observer) are loaded via manifest.json and expose globals.
+ */
 
 // ============================================================================
 // Logging Utility
@@ -67,23 +68,6 @@ function injectVisualIndicatorStyles() {
       position: relative;
     }
 
-    /* Subtle left border indicator */
-    .claude-ui-styled::before {
-      content: '';
-      position: absolute;
-      left: -4px;
-      top: 0;
-      bottom: 0;
-      width: 3px;
-      background: linear-gradient(180deg, #d97757 0%, #e8956c 100%);
-      border-radius: 2px;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .claude-ui-styled:hover::before {
-      opacity: 1;
-    }
 
     /* Badge showing extension is active */
     .claude-ui-badge {
@@ -412,15 +396,15 @@ function disableStyling() {
 
 /**
  * Re-enable styling on the page
- * Re-runs initialization
+ * Re-runs initialization but skips the enabled check
  */
 async function enableStyling() {
   logger.info('Enabling styling...');
 
   isEnabled = true;
 
-  // Re-run initialization
-  await initialize();
+  // Re-run initialization with skip check flag
+  await initialize(true);  // true = skip enabled check
 
   logger.info('Styling enabled successfully');
 }
@@ -465,6 +449,14 @@ function selectAdapter() {
  */
 async function injectCSS(url) {
   try {
+    const styleId = `claude-ui-${url.replace(/[^a-zA-Z0-9]/g, '-')}`;
+
+    // Skip if already injected
+    if (document.getElementById(styleId)) {
+      logger.debug('CSS already injected, skipping:', url);
+      return;
+    }
+
     const cssUrl = chrome.runtime.getURL(url);
     const response = await fetch(cssUrl);
 
@@ -477,7 +469,6 @@ async function injectCSS(url) {
 
     // Create style element
     const style = document.createElement('style');
-    const styleId = `claude-ui-${url.replace(/[^a-zA-Z0-9]/g, '-')}`;
     style.id = styleId;
     style.textContent = cssText;
 
@@ -544,14 +535,19 @@ function isExcluded(element) {
  */
 function applyBaseStyling(container) {
   logger.debug('Applying base styling to container:', container);
+  logger.info('Container classes before:', container.className);
 
   // Add styled classes
   if (!container.classList.contains('claude-styled')) {
     container.classList.add('claude-styled');
+    logger.info('Added claude-styled class');
   }
   if (!container.classList.contains('claude-ui-styled')) {
     container.classList.add('claude-ui-styled');
+    logger.info('Added claude-ui-styled class');
   }
+
+  logger.info('Container classes after:', container.className);
 
   // Apply dark mode detection immediately
   const isDark = currentAdapter?.detectDarkMode?.() || false;
@@ -880,7 +876,7 @@ function styleMarkdownContainers(adapter) {
 // MutationObserver for Dynamic Content
 // ============================================================================
 
-let debounceTimer = null;
+let injectDebounceTimer = null;
 
 /**
  * Debounces a function call
@@ -891,11 +887,11 @@ let debounceTimer = null;
 function debounce(func, wait) {
   return function executedFunction(...args) {
     const later = () => {
-      clearTimeout(debounceTimer);
+      clearTimeout(injectDebounceTimer);
       func(...args);
     };
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(later, wait);
+    clearTimeout(injectDebounceTimer);
+    injectDebounceTimer = setTimeout(later, wait);
   };
 }
 
@@ -932,8 +928,8 @@ function cleanup() {
   if (window.claudeUIObserver) {
     window.claudeUIObserver.disconnectObserver();
   }
-  if (debounceTimer) {
-    clearTimeout(debounceTimer);
+  if (injectDebounceTimer) {
+    clearTimeout(injectDebounceTimer);
   }
 }
 
@@ -963,6 +959,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse(status);
   }
 
+  // Ping handler for background to check if content script is loaded
+  if (request.action === 'ping') {
+    sendResponse({ pong: true, adapter: currentAdapter?.name });
+    return;
+  }
+
   if (request.action === 'enableDebug') {
     window.CLAUDE_UI_DEBUG = true;
     localStorage.setItem('CLAUDE_UI_DEBUG', 'true');
@@ -982,14 +984,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'stateChanged') {
     logger.info('Received state change:', request.enabled);
 
-    if (request.enabled) {
-      enableStyling();
-    } else {
-      disableStyling();
-    }
+    // Handle async operations properly
+    (async () => {
+      if (request.enabled) {
+        await enableStyling();
+      } else {
+        disableStyling();
+      }
+      sendResponse({ success: true, enabled: request.enabled });
+    })();
 
-    sendResponse({ success: true, enabled: request.enabled });
-    return true;
+    return true;  // Keep channel open for async response
   }
 
   // NEW: Theme change handler
@@ -999,6 +1004,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     applyThemeOverride(request.theme);
 
     sendResponse({ success: true, theme: request.theme });
+    return true;
+  }
+
+  // Handle URL changes (for SPAs like Kimi)
+  if (request.action === 'urlChanged') {
+    logger.info('URL changed, re-applying styling:', request.url);
+
+    // Re-apply styling after a short delay to let the SPA render
+    setTimeout(() => {
+      if (isEnabled && currentAdapter) {
+        applyStyling();
+      }
+    }, 500);
+
+    sendResponse({ success: true });
     return true;
   }
 
@@ -1029,17 +1049,22 @@ function shouldActivate() {
 
 /**
  * Main initialization function
+ * @param {boolean} skipEnabledCheck - If true, skip the enabled state check (used when re-enabling)
  */
-async function initialize() {
+async function initialize(skipEnabledCheck = false) {
   logger.group('Initializing Claude UI Extension');
 
   try {
-    // Check if enabled for this site FIRST
-    const enabled = await checkEnabledState();
-    if (!enabled) {
-      logger.info('Extension disabled for this site, skipping initialization');
-      logger.groupEnd();
-      return;
+    // Check if enabled for this site FIRST (unless skipped)
+    if (!skipEnabledCheck) {
+      const enabled = await checkEnabledState();
+      if (!enabled) {
+        logger.info('Extension disabled for this site, skipping initialization');
+        logger.groupEnd();
+        return;
+      }
+    } else {
+      logger.info('Skipping enabled check (re-enabling)');
     }
 
     // Inject visual styles

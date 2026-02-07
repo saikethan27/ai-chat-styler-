@@ -388,8 +388,7 @@ input:focus + .toggle-slider {
   text-decoration: underline;
 }
 
-/* Disabled state */
-.popup-container.disabled .toggle-section,
+/* Disabled state - only disable theme section, not the toggle */
 .popup-container.disabled .theme-section {
   opacity: 0.6;
   pointer-events: none;

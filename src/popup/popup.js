@@ -81,7 +81,8 @@ function setupEventListeners() {
   // Footer links
   document.getElementById('settings-link')?.addEventListener('click', (e) => {
     e.preventDefault();
-    chrome.runtime.openOptionsPage?.() || alert('Settings page coming soon!');
+    // TODO: Create options page when needed
+    alert('Settings page coming soon!');
   });
 
   document.getElementById('help-link')?.addEventListener('click', (e) => {
@@ -238,6 +239,11 @@ async function handleToggleChange(event) {
 
   console.log(LOG_PREFIX, 'Toggle changed:', enabled);
 
+  // Ensure state is initialized
+  if (!currentState) {
+    currentState = { enabled: true, theme: 'auto' };
+  }
+
   // Update local state
   currentState.enabled = enabled;
 
@@ -252,8 +258,17 @@ async function handleToggleChange(event) {
       enabled: enabled
     });
 
-    // Notify content script to apply/remove styling
-    await notifyContentScript('stateChanged', { enabled });
+    // Notify content script to apply/remove styling dynamically
+    const contentScriptResponding = await notifyContentScript('stateChanged', { enabled });
+
+    if (contentScriptResponding) {
+      console.log(LOG_PREFIX, 'Content script notified successfully');
+    } else {
+      console.log(LOG_PREFIX, 'Content script not responding, reloading page...');
+      // Only reload if content script isn't responding
+      await chrome.tabs.reload(currentTab.id);
+      window.close();
+    }
 
   } catch (error) {
     console.error(LOG_PREFIX, 'Failed to save state:', error);
@@ -268,6 +283,11 @@ async function handleToggleChange(event) {
  */
 async function setTheme(theme) {
   console.log(LOG_PREFIX, 'Theme changed:', theme);
+
+  // Ensure state is initialized
+  if (!currentState) {
+    currentState = { enabled: true, theme: 'auto' };
+  }
 
   // Update local state
   currentState.theme = theme;
@@ -348,17 +368,22 @@ async function handleDebugModeChange(event) {
 
 /**
  * Notify content script of state changes
+ * @returns {Promise<boolean>} Whether the content script responded successfully
  */
 async function notifyContentScript(action, data) {
-  if (!currentTab?.id) return;
+  if (!currentTab?.id) return false;
 
   try {
     await chrome.tabs.sendMessage(currentTab.id, {
       action,
       ...data
     });
+    return true;
   } catch (error) {
-    console.error(LOG_PREFIX, 'Failed to notify content script:', error);
+    // Content script may not be loaded or responding (e.g., after being disabled)
+    // This is expected when turning the extension back on after it was off
+    console.log(LOG_PREFIX, 'Content script not responding:', error.message);
+    return false;
   }
 }
 

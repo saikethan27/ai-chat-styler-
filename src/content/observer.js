@@ -77,7 +77,7 @@ function handleMutations(mutations, options) {
     if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
       const target = /** @type {HTMLElement} */ (mutation.target);
       if (target.classList.contains('dark') ||
-          target.classList.contains('claude-styled')) {
+        target.classList.contains('claude-styled')) {
         shouldNotify = true;
       }
     }
@@ -114,7 +114,7 @@ function handleMutations(mutations, options) {
  * @param {Object} options.logger - Logger instance
  * @returns {Object} Observer control interface
  */
-export function createObserver(options) {
+function createObserver(options) {
   // Disconnect any existing observer first
   disconnectObserver();
 
@@ -163,7 +163,7 @@ export function createObserver(options) {
 /**
  * Disconnect the observer and clean up
  */
-export function disconnectObserver() {
+function disconnectObserver() {
   if (observer) {
     observer.disconnect();
     observer = null;
@@ -181,7 +181,7 @@ export function disconnectObserver() {
  * Get performance statistics
  * @returns {Object} Performance metrics
  */
-export function getObserverStats() {
+function getObserverStats() {
   return {
     ...perfMetrics,
     isObserving,
@@ -192,7 +192,7 @@ export function getObserverStats() {
 /**
  * Reset performance statistics
  */
-export function resetObserverStats() {
+function resetObserverStats() {
   perfMetrics.mutationCount = 0;
   perfMetrics.batchCount = 0;
   perfMetrics.totalProcessingTime = 0;
@@ -203,7 +203,7 @@ export function resetObserverStats() {
  * Check if observer is currently active
  * @returns {boolean}
  */
-export function isObserverActive() {
+function isObserverActive() {
   return isObserving;
 }
 

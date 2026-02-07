@@ -288,21 +288,58 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 /**
- * Handle tab activation - update badge for newly activated tab
+ * Handle tab activation - update badge and ensure content script is injected
  */
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   console.log(LOG_PREFIX, 'Tab activated:', activeInfo.tabId);
   await updateBadgeForTab(activeInfo.tabId);
+
+  // Ensure content script is injected when tab becomes active
+  try {
+    await chrome.tabs.sendMessage(activeInfo.tabId, { action: 'ping' });
+  } catch (error) {
+    // Content script not loaded, inject it
+    console.log(LOG_PREFIX, 'Injecting into newly activated tab', activeInfo.tabId);
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: activeInfo.tabId },
+        files: [
+          'content/adapters/gemini.js',
+          'content/adapters/kimi.js',
+          'content/adapters/generic.js',
+          'content/observer.js',
+          'content/inject.js'
+        ]
+      });
+    } catch (injectError) {
+      console.log(LOG_PREFIX, 'Could not inject into tab', activeInfo.tabId, ':', injectError.message);
+    }
+  }
 });
 
 /**
- * Handle tab updates - update badge when URL changes
+ * Handle tab updates - update badge when URL changes and notify content script
  */
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  // Only update when page is fully loaded and URL changed
+  // Update badge when page is fully loaded
   if (changeInfo.status === 'complete' && tab.url) {
     console.log(LOG_PREFIX, 'Tab updated:', tabId, 'URL:', tab.url);
     await updateBadgeForTab(tabId);
+  }
+
+  // Notify content script when URL changes (for SPAs like Kimi)
+  // This handles navigation within the same page
+  if (changeInfo.url) {
+    console.log(LOG_PREFIX, 'Tab URL changed:', tabId, 'new URL:', changeInfo.url);
+    try {
+      await chrome.tabs.sendMessage(tabId, {
+        action: 'urlChanged',
+        url: changeInfo.url
+      });
+    } catch (error) {
+      // Content script may not be loaded, will be injected on next activation
+      console.log(LOG_PREFIX, 'Could not notify tab of URL change:', error.message);
+    }
   }
 });
 
@@ -329,5 +366,49 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     console.error(LOG_PREFIX, 'Failed to initialize settings:', error);
   }
 });
+
+/**
+ * Inject content scripts into all existing tabs on startup
+ * This ensures the extension works on tabs that were open before the extension loaded
+ */
+async function injectIntoExistingTabs() {
+  try {
+    const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
+    console.log(LOG_PREFIX, 'Injecting into', tabs.length, 'existing tabs');
+
+    for (const tab of tabs) {
+      if (!tab.id || !tab.url) continue;
+
+      try {
+        // Check if content script is already injected by sending a ping
+        await chrome.tabs.sendMessage(tab.id, { action: 'ping' });
+        console.log(LOG_PREFIX, 'Content script already in tab', tab.id);
+      } catch (error) {
+        // Content script not injected, inject it now
+        console.log(LOG_PREFIX, 'Injecting into tab', tab.id, tab.url);
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: [
+              'content/adapters/gemini.js',
+              'content/adapters/kimi.js',
+              'content/adapters/generic.js',
+              'content/observer.js',
+              'content/inject.js'
+            ]
+          });
+          console.log(LOG_PREFIX, 'Successfully injected into tab', tab.id);
+        } catch (injectError) {
+          console.log(LOG_PREFIX, 'Could not inject into tab', tab.id, ':', injectError.message);
+        }
+      }
+    }
+  } catch (error) {
+    console.error(LOG_PREFIX, 'Failed to inject into existing tabs:', error);
+  }
+}
+
+// Inject into existing tabs when service worker starts
+injectIntoExistingTabs();
 
 console.log(LOG_PREFIX, 'Background service worker initialized');
