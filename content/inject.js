@@ -6,6 +6,7 @@
 import geminiAdapter from './adapters/gemini.js';
 import kimiAdapter from './adapters/kimi.js';
 import genericAdapter from './adapters/generic.js';
+import { createObserver, disconnectObserver, getObserverStats } from './observer.js';
 
 // ============================================================================
 // Logging Utility
@@ -493,7 +494,6 @@ function styleMarkdownContainers(adapter) {
 // MutationObserver for Dynamic Content
 // ============================================================================
 
-let observer = null;
 let debounceTimer = null;
 
 /**
@@ -518,56 +518,21 @@ function debounce(func, wait) {
  * Uses currentAdapter for selector matching
  */
 function setupMutationObserver() {
-  if (observer) {
-    observer.disconnect();
-  }
+  // Disconnect any existing observer
+  disconnectObserver();
 
-  const debouncedStyle = debounce(() => {
-    applyStyling();
-  }, 100);
-
-  observer = new MutationObserver((mutations) => {
-    let shouldRestyle = false;
-
-    mutations.forEach(mutation => {
-      // Check if nodes were added
-      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-        for (const node of mutation.addedNodes) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            // Check if the added node is or contains a markdown container
-            const element = /** @type {HTMLElement} */ (node);
-            if (element.matches?.(currentAdapter?.responseContainerSelector)) {
-              shouldRestyle = true;
-              break;
-            }
-            if (element.querySelector?.(currentAdapter?.responseContainerSelector)) {
-              shouldRestyle = true;
-              break;
-            }
-          }
-        }
-      }
-
-      // Check for class changes that might indicate theme changes
-      if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-        const target = /** @type {HTMLElement} */ (mutation.target);
-        if (target.classList.contains('dark') || target.classList.contains('claude-styled')) {
-          shouldRestyle = true;
-        }
-      }
-    });
-
-    if (shouldRestyle) {
-      debouncedStyle();
-    }
+  // Create new observer with current adapter config
+  const observer = createObserver({
+    selector: currentAdapter?.responseContainerSelector,
+    onContainersFound: () => {
+      logger.debug('New containers detected, re-applying styling');
+      applyStyling();
+    },
+    logger: logger
   });
 
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['class', 'data-theme'],
-  });
+  // Store reference for cleanup
+  window.__claudeUiObserver = observer;
 
   logger.info('MutationObserver set up');
 }
@@ -576,10 +541,7 @@ function setupMutationObserver() {
  * Cleans up the observer when needed
  */
 function cleanup() {
-  if (observer) {
-    observer.disconnect();
-    observer = null;
-  }
+  disconnectObserver();
   if (debounceTimer) {
     clearTimeout(debounceTimer);
   }
