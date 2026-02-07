@@ -3,6 +3,8 @@
  * Detects site, loads appropriate adapter, and injects Claude styling
  */
 
+import geminiAdapter from './adapters/gemini.js';
+import kimiAdapter from './adapters/kimi.js';
 import genericAdapter from './adapters/generic.js';
 
 // ============================================================================
