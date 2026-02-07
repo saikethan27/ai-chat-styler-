@@ -8,6 +8,175 @@ import kimiAdapter from './adapters/kimi.js';
 import genericAdapter from './adapters/generic.js';
 
 // ============================================================================
+// Logging Utility
+// ============================================================================
+
+const LOG_PREFIX = '[Claude UI Extension]';
+
+const logger = {
+  debug: (...args) => {
+    if (window.CLAUDE_UI_DEBUG) {
+      console.debug(LOG_PREFIX, ...args);
+    }
+  },
+  info: (...args) => console.info(LOG_PREFIX, ...args),
+  log: (...args) => console.log(LOG_PREFIX, ...args),
+  warn: (...args) => console.warn(LOG_PREFIX, ...args),
+  error: (...args) => console.error(LOG_PREFIX, ...args),
+
+  // Group related logs
+  group: (label) => console.group(LOG_PREFIX, label),
+  groupEnd: () => console.groupEnd(),
+
+  // Table output for structured data
+  table: (data) => console.table(data),
+
+  // Count occurrences
+  count: (label) => console.count(`${LOG_PREFIX} ${label}`),
+  countReset: (label) => console.countReset(`${LOG_PREFIX} ${label}`)
+};
+
+// Enable debug mode via localStorage or URL param
+function checkDebugMode() {
+  const urlParams = new URLSearchParams(window.location.search);
+  window.CLAUDE_UI_DEBUG =
+    localStorage.getItem('CLAUDE_UI_DEBUG') === 'true' ||
+    urlParams.has('claude-ui-debug');
+
+  if (window.CLAUDE_UI_DEBUG) {
+    logger.info('Debug mode enabled');
+  }
+}
+
+checkDebugMode();
+
+// ============================================================================
+// Visual Indicators
+// ============================================================================
+
+let statusBadge = null;
+let styledContainerCount = 0;
+
+function injectVisualIndicatorStyles() {
+  const styleId = 'claude-ui-visual-indicators';
+  if (document.getElementById(styleId)) return;
+
+  const style = document.createElement('style');
+  style.id = styleId;
+  style.textContent = `
+    /* Visual indicator for styled containers */
+    .claude-ui-styled {
+      position: relative;
+    }
+
+    /* Subtle left border indicator */
+    .claude-ui-styled::before {
+      content: '';
+      position: absolute;
+      left: -4px;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, #d97757 0%, #e8956c 100%);
+      border-radius: 2px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .claude-ui-styled:hover::before {
+      opacity: 1;
+    }
+
+    /* Badge showing extension is active */
+    .claude-ui-badge {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #d97757;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-family: system-ui, -apple-system, sans-serif;
+      z-index: 10000;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .claude-ui-badge.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Debug mode: always show indicators */
+    .claude-ui-debug .claude-ui-styled::before {
+      opacity: 1 !important;
+    }
+
+    /* Debug outlines */
+    .claude-ui-debug .claude-ui-styled {
+      outline: 1px dashed #d97757;
+      outline-offset: 2px;
+    }
+
+    .claude-ui-debug .claude-ui-heading {
+      outline: 1px solid #4a9eff;
+    }
+
+    .claude-ui-debug .claude-ui-code {
+      outline: 1px solid #50c878;
+    }
+
+    .claude-ui-debug .claude-ui-table {
+      outline: 1px solid #ffd700;
+    }
+
+    .claude-ui-debug .claude-ui-list {
+      outline: 1px solid #ff6b6b;
+    }
+  `;
+
+  document.head.appendChild(style);
+  logger.debug('Visual indicator styles injected');
+}
+
+function createStatusBadge() {
+  if (statusBadge) return;
+
+  statusBadge = document.createElement('div');
+  statusBadge.className = 'claude-ui-badge';
+  statusBadge.textContent = 'Claude UI Active';
+  document.body.appendChild(statusBadge);
+
+  logger.debug('Status badge created');
+}
+
+function updateStatusBadge() {
+  if (!statusBadge) return;
+
+  const adapter = currentAdapter?.name || 'unknown';
+  const count = styledContainerCount;
+  const darkMode = currentAdapter?.detectDarkMode?.() ? 'Dark' : 'Light';
+
+  statusBadge.textContent = `Claude UI: ${adapter} (${count}) ${darkMode}`;
+  statusBadge.classList.add('visible');
+
+  // Hide after 5 seconds unless in debug mode
+  if (!window.CLAUDE_UI_DEBUG) {
+    setTimeout(() => {
+      statusBadge?.classList.remove('visible');
+    }, 5000);
+  }
+}
+
+function showStatusBadge() {
+  statusBadge?.classList.add('visible');
+}
+
+// ============================================================================
 // Adapter Registry
 // ============================================================================
 
@@ -34,13 +203,13 @@ function selectAdapter() {
   // Find first matching adapter (specific adapters first)
   for (const adapter of adapterRegistry) {
     if (adapter.hostMatch && adapter.hostMatch.test(hostname)) {
-      console.log(`[Claude UI Extension] Using adapter: ${adapter.name}`);
+      logger.info('Using adapter:', adapter.name);
       return adapter;
     }
   }
 
   // Fallback to generic adapter (should always match due to /.*/)
-  console.log('[Claude UI Extension] Using generic adapter');
+  logger.info('Using generic adapter');
   return genericAdapter;
 }
 
@@ -59,7 +228,7 @@ async function injectCSS(url) {
     const response = await fetch(cssUrl);
 
     if (!response.ok) {
-      console.error(`[Claude UI] Failed to fetch CSS: ${url}`);
+      logger.error('Failed to fetch CSS:', url);
       return;
     }
 
@@ -76,9 +245,9 @@ async function injectCSS(url) {
       target.appendChild(style);
     }
 
-    console.log(`[Claude UI Extension] Injected CSS: ${url}`);
+    logger.info('Injected CSS:', url);
   } catch (error) {
-    console.error(`[Claude UI Extension] Error injecting CSS ${url}:`, error);
+    logger.error('Error injecting CSS', url, error);
   }
 }
 
@@ -130,13 +299,20 @@ function isExcluded(element) {
  * @param {HTMLElement} container - The container to style
  */
 function applyStylingToContainer(container) {
-  // Add styled class
+  logger.debug('Styling container:', container);
+
+  // Add styled class (using both old and new class for compatibility)
   if (!container.classList.contains('claude-styled')) {
     container.classList.add('claude-styled');
+  }
+  if (!container.classList.contains('claude-ui-styled')) {
+    container.classList.add('claude-ui-styled');
   }
 
   // Apply dark mode detection
   const isDark = currentAdapter?.detectDarkMode?.() || false;
+  logger.debug('Dark mode detected:', isDark);
+
   if (isDark) {
     if (!container.classList.contains('claude-ui-dark')) {
       container.classList.add('claude-ui-dark');
@@ -150,80 +326,134 @@ function applyStylingToContainer(container) {
   if (selectors) {
     // Style headings
     if (selectors.headings) {
-      container.querySelectorAll(selectors.headings).forEach(el => {
+      const headings = container.querySelectorAll(selectors.headings);
+      headings.forEach(el => {
         if (!el.classList.contains('claude-ui-heading')) {
           el.classList.add('claude-ui-heading');
         }
       });
+      if (headings.length) logger.debug('Styled headings:', headings.length);
     }
 
     // Style code blocks
     if (selectors.codeBlocks) {
-      container.querySelectorAll(selectors.codeBlocks).forEach(el => {
+      const codeBlocks = container.querySelectorAll(selectors.codeBlocks);
+      codeBlocks.forEach(el => {
         if (!el.classList.contains('claude-ui-code')) {
           el.classList.add('claude-ui-code');
         }
       });
+      if (codeBlocks.length) logger.debug('Styled code blocks:', codeBlocks.length);
     }
 
     // Style tables
     if (selectors.tables) {
-      container.querySelectorAll(selectors.tables).forEach(el => {
+      const tables = container.querySelectorAll(selectors.tables);
+      tables.forEach(el => {
         if (!el.classList.contains('claude-ui-table')) {
           el.classList.add('claude-ui-table');
         }
       });
+      if (tables.length) logger.debug('Styled tables:', tables.length);
     }
 
     // Style lists
     if (selectors.lists) {
-      container.querySelectorAll(selectors.lists).forEach(el => {
+      const lists = container.querySelectorAll(selectors.lists);
+      lists.forEach(el => {
         if (!el.classList.contains('claude-ui-list')) {
           el.classList.add('claude-ui-list');
         }
       });
+      if (lists.length) logger.debug('Styled lists:', lists.length);
     }
   }
 
-  console.log('[Claude UI Extension] Styled container:', container);
+  logger.info('Styled container successfully');
 }
 
 /**
  * Applies styling to all matching containers with adapter-specific handling
  * Handles thinking states (Gemini) and streaming (Kimi)
  */
+function updateCounts() {
+  styledContainerCount = document.querySelectorAll('.claude-ui-styled').length;
+  updateStatusBadge();
+}
+
 function applyStyling() {
-  if (!currentAdapter) return;
+  if (!currentAdapter) {
+    logger.warn('No adapter selected');
+    return;
+  }
+
+  logger.group('Applying styling');
+  logger.info('Adapter:', currentAdapter.name);
+  logger.info('Selector:', currentAdapter.responseContainerSelector);
 
   const containers = document.querySelectorAll(currentAdapter.responseContainerSelector);
+  logger.info('Found containers:', containers.length);
 
-  containers.forEach(container => {
+  let styledCount = 0;
+  let skippedCount = 0;
+
+  containers.forEach((container, index) => {
+    // Skip if already styled
+    if (container.classList.contains('claude-ui-styled')) {
+      logger.debug(`Container ${index}: already styled`);
+      skippedCount++;
+      return;
+    }
+
     // Skip excluded elements
-    if (isExcluded(container)) return;
+    if (isExcluded(container)) {
+      logger.debug(`Container ${index}: excluded`);
+      skippedCount++;
+      return;
+    }
 
-    // Skip already styled containers
-    if (container.classList.contains('claude-styled')) return;
+    // Validate container (generic adapter)
+    if (currentAdapter.validateContainer && !currentAdapter.validateContainer(container)) {
+      logger.debug(`Container ${index}: failed validation`);
+      skippedCount++;
+      return;
+    }
+
+    logger.info(`Container ${index}: styling...`);
 
     // Handle thinking state for Gemini
     if (currentAdapter.handleThinkingState && currentAdapter.isThinking?.(container)) {
-      console.log('[Claude UI Extension] Waiting for thinking to complete');
+      logger.info(`Container ${index}: waiting for thinking to complete`);
       currentAdapter.waitForThinkingComplete(container).then(() => {
+        logger.info(`Container ${index}: thinking complete, applying styling`);
         applyStylingToContainer(container);
+        styledCount++;
+        updateCounts();
       });
       return;
     }
 
     // Handle streaming for Kimi
     if (currentAdapter.isStreaming?.(container)) {
-      console.log('[Claude UI Extension] Waiting for streaming to complete');
+      logger.info(`Container ${index}: waiting for streaming to complete`);
       currentAdapter.waitForStreamingComplete(container).then(() => {
+        logger.info(`Container ${index}: streaming complete, applying styling`);
         applyStylingToContainer(container);
+        styledCount++;
+        updateCounts();
       });
       return;
     }
 
     applyStylingToContainer(container);
+    styledCount++;
   });
+
+  logger.info('Styled:', styledCount, 'Skipped:', skippedCount);
+  logger.groupEnd();
+
+  styledContainerCount += styledCount;
+  updateStatusBadge();
 }
 
 /**
@@ -251,7 +481,7 @@ function detectAndApplyDarkMode(container, adapter) {
  */
 function styleMarkdownContainers(adapter) {
   if (!adapter || !adapter.responseContainerSelector) {
-    console.warn('[Claude UI Extension] No adapter or selector available');
+    logger.warn('No adapter or selector available');
     return;
   }
 
@@ -339,7 +569,7 @@ function setupMutationObserver() {
     attributeFilter: ['class', 'data-theme'],
   });
 
-  console.log('[Claude UI Extension] MutationObserver set up');
+  logger.info('MutationObserver set up');
 }
 
 /**
@@ -354,6 +584,43 @@ function cleanup() {
     clearTimeout(debounceTimer);
   }
 }
+
+// ============================================================================
+// Message Handler (Popup Communication)
+// ============================================================================
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'getStatus') {
+    const status = {
+      active: !!currentAdapter,
+      adapter: currentAdapter?.name,
+      containerCount: document.querySelectorAll('.claude-ui-styled').length,
+      darkMode: currentAdapter?.detectDarkMode?.() || false,
+      url: window.location.href,
+      hostname: window.location.hostname
+    };
+
+    logger.debug('Status requested:', status);
+    sendResponse(status);
+  }
+
+  if (request.action === 'enableDebug') {
+    window.CLAUDE_UI_DEBUG = true;
+    localStorage.setItem('CLAUDE_UI_DEBUG', 'true');
+    document.body.classList.add('claude-ui-debug');
+    showStatusBadge();
+    sendResponse({ debug: true });
+  }
+
+  if (request.action === 'disableDebug') {
+    window.CLAUDE_UI_DEBUG = false;
+    localStorage.setItem('CLAUDE_UI_DEBUG', 'false');
+    document.body.classList.remove('claude-ui-debug');
+    sendResponse({ debug: false });
+  }
+
+  return true; // Keep channel open for async
+});
 
 // ============================================================================
 // Main Execution
@@ -371,7 +638,7 @@ function shouldActivate() {
     if (containers.length === 0) {
       return false;
     }
-    console.log(`[Claude UI Extension] Found ${containers.length} markdown containers`);
+    logger.info('Found', containers.length, 'markdown containers');
   }
 
   return true;
@@ -381,24 +648,39 @@ function shouldActivate() {
  * Main initialization function
  */
 async function initialize() {
-  console.log('[Claude UI Extension] Initializing...');
+  logger.group('Initializing Claude UI Extension');
 
   try {
+    // Inject visual styles
+    injectVisualIndicatorStyles();
+
+    // Create status badge
+    createStatusBadge();
+
     // Select adapter for current site
     currentAdapter = selectAdapter();
 
     if (!currentAdapter) {
-      console.error('[Claude UI Extension] No adapter found');
+      logger.error('No adapter found');
+      logger.groupEnd();
       return;
     }
+
+    logger.info('Selected adapter:', currentAdapter.name);
 
     // Check if adapter should activate on this page
     if (!shouldActivate()) {
-      console.log('[Claude UI Extension] Adapter not activating on this page');
+      logger.info('Adapter not activating on this page');
+      logger.groupEnd();
       return;
     }
 
-    console.log(`[Claude UI Extension] Initializing ${currentAdapter.name} adapter`);
+    logger.info('Adapter activating');
+
+    // Apply debug mode class if enabled
+    if (window.CLAUDE_UI_DEBUG) {
+      document.body.classList.add('claude-ui-debug');
+    }
 
     // Wait for initial delay (allows page to settle)
     const delay = currentAdapter.initialDelayMs || 200;
@@ -420,9 +702,14 @@ async function initialize() {
       styleMarkdownContainers(currentAdapter);
     });
 
-    console.log('[Claude UI Extension] Initialization complete');
+    // Show status badge
+    updateStatusBadge();
+
+    logger.info('Initialization complete');
+    logger.groupEnd();
   } catch (error) {
-    console.error('[Claude UI Extension] Initialization failed:', error);
+    logger.error('Initialization failed:', error);
+    logger.groupEnd();
   }
 }
 
