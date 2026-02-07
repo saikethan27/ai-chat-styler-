@@ -6,11 +6,105 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Claude UI/UX</h1>
-    <p>Extension is active</p>
-    <p class="note">Full UI coming in Phase 4</p>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="logo">
+        <span class="logo-icon">C</span>
+        <span class="logo-text">Claude UI</span>
+      </div>
+      <div class="version">v1.0</div>
+    </header>
+
+    <!-- Current Site Section -->
+    <section class="site-section">
+      <div class="site-label">Current Site</div>
+      <div class="site-name" id="current-site">Loading...</div>
+    </section>
+
+    <!-- Main Toggle -->
+    <section class="toggle-section">
+      <div class="toggle-row">
+        <span class="toggle-label">Enable Styling</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="enable-toggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-description">
+        Apply Claude's markdown styling to this site
+      </div>
+    </section>
+
+    <!-- Theme Selector -->
+    <section class="theme-section">
+      <div class="section-label">Theme</div>
+      <div class="theme-options">
+        <button class="theme-btn active" data-theme="auto" id="theme-auto">
+          <span class="theme-icon">A</span>
+          <span class="theme-text">Auto</span>
+        </button>
+        <button class="theme-btn" data-theme="light" id="theme-light">
+          <span class="theme-icon">L</span>
+          <span class="theme-text">Light</span>
+        </button>
+        <button class="theme-btn" data-theme="dark" id="theme-dark">
+          <span class="theme-icon">D</span>
+          <span class="theme-text">Dark</span>
+        </button>
+      </div>
+      <div class="theme-description" id="theme-description">
+        Automatically detect site's color scheme
+      </div>
+    </section>
+
+    <!-- Status Section -->
+    <section class="status-section">
+      <div class="section-label">Status</div>
+      <div class="status-grid">
+        <div class="status-item">
+          <span class="status-label">Adapter</span>
+          <span class="status-value" id="adapter-name">-</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Containers</span>
+          <span class="status-value" id="container-count">-</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Dark Mode</span>
+          <span class="status-value" id="dark-mode-status">-</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">State</span>
+          <span class="status-value" id="state-status">Active</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Debug Section (collapsible) -->
+    <section class="debug-section">
+      <button class="debug-toggle" id="debug-section-toggle">
+        <span>Debug Options</span>
+        <span class="debug-arrow">&#9662;</span>
+      </button>
+      <div class="debug-content" id="debug-content">
+        <label class="debug-checkbox">
+          <input type="checkbox" id="debug-mode">
+          <span>Enable debug mode</span>
+        </label>
+        <div class="debug-hint">
+          Shows visual indicators on styled elements
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <a href="#" class="footer-link" id="settings-link">Settings</a>
+      <a href="#" class="footer-link" id="help-link">Help</a>
+    </footer>
   </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
