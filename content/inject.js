@@ -225,6 +225,83 @@ function showStatusBadge() {
 }
 
 // ============================================================================
+// Theme Override
+// ============================================================================
+
+/**
+ * Apply theme override (light/dark/auto)
+ * @param {string} theme - 'auto', 'light', or 'dark'
+ */
+function applyThemeOverride(theme) {
+  logger.info('Applying theme override:', theme);
+
+  const html = document.documentElement;
+  const body = document.body;
+
+  // Remove existing override classes
+  html.classList.remove('claude-force-light', 'claude-force-dark');
+  body.classList.remove('claude-force-light', 'claude-force-dark');
+
+  if (theme === 'light') {
+    html.classList.add('claude-force-light');
+    body.classList.add('claude-force-light');
+
+    // Remove dark mode from all styled containers
+    const containers = document.querySelectorAll('.claude-ui-dark');
+    containers.forEach(c => c.classList.remove('claude-ui-dark'));
+
+  } else if (theme === 'dark') {
+    html.classList.add('claude-force-dark');
+    body.classList.add('claude-force-dark');
+
+    // Add dark mode to all styled containers
+    const containers = document.querySelectorAll('.claude-ui-styled');
+    containers.forEach(c => {
+      if (!c.classList.contains('claude-ui-dark')) {
+        c.classList.add('claude-ui-dark');
+      }
+    });
+  }
+
+  // For 'auto', we just removed the overrides - let natural detection take over
+  if (theme === 'auto') {
+    // Re-apply dark mode detection to all containers
+    const containers = document.querySelectorAll('.claude-ui-styled');
+    containers.forEach(container => {
+      const isDark = currentAdapter?.detectDarkMode?.() || false;
+      if (isDark) {
+        container.classList.add('claude-ui-dark');
+      } else {
+        container.classList.remove('claude-ui-dark');
+      }
+    });
+  }
+
+  logger.info('Theme override applied:', theme);
+}
+
+/**
+ * Check if there's a theme override and apply it
+ * Called during initialization
+ */
+async function checkAndApplyThemeOverride() {
+  try {
+    const hostname = window.location.hostname;
+    const response = await chrome.runtime.sendMessage({
+      action: 'getSiteState',
+      hostname: hostname
+    });
+
+    const theme = response?.theme || 'auto';
+    if (theme !== 'auto') {
+      applyThemeOverride(theme);
+    }
+  } catch (error) {
+    logger.debug('No theme override to apply');
+  }
+}
+
+// ============================================================================
 // Adapter Registry
 // ============================================================================
 
@@ -867,14 +944,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const enhancedContainers = document.querySelectorAll('.claude-ui-enhanced');
 
     const status = {
-      active: !!currentAdapter,
+      active: isEnabled && !!currentAdapter,
       adapter: currentAdapter?.name,
       containerCount: containers.length,
       thinkingCount: thinkingContainers.length,
       enhancedCount: enhancedContainers.length,
       darkMode: currentAdapter?.detectDarkMode?.() || false,
       url: window.location.href,
-      hostname: window.location.hostname
+      hostname: window.location.hostname,
+      debug: window.CLAUDE_UI_DEBUG
     };
 
     logger.debug('Status requested:', status);
@@ -894,6 +972,30 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     localStorage.setItem('CLAUDE_UI_DEBUG', 'false');
     document.body.classList.remove('claude-ui-debug');
     sendResponse({ debug: false });
+  }
+
+  // NEW: State change handler (toggle ON/OFF)
+  if (request.action === 'stateChanged') {
+    logger.info('Received state change:', request.enabled);
+
+    if (request.enabled) {
+      enableStyling();
+    } else {
+      disableStyling();
+    }
+
+    sendResponse({ success: true, enabled: request.enabled });
+    return true;
+  }
+
+  // NEW: Theme change handler
+  if (request.action === 'themeChanged') {
+    logger.info('Received theme change:', request.theme);
+
+    applyThemeOverride(request.theme);
+
+    sendResponse({ success: true, theme: request.theme });
+    return true;
   }
 
   return true; // Keep channel open for async
@@ -977,6 +1079,9 @@ async function initialize() {
 
     // Apply styling to existing containers
     styleMarkdownContainers(currentAdapter);
+
+    // NEW: Apply theme override if set
+    await checkAndApplyThemeOverride();
 
     // Set up observer for dynamic content
     setupMutationObserver();
