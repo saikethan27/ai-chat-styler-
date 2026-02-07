@@ -138,10 +138,56 @@ function injectVisualIndicatorStyles() {
     .claude-ui-debug .claude-ui-list {
       outline: 1px solid #ff6b6b;
     }
+
+    /* Thinking state styling - more subtle */
+    .claude-ui-thinking {
+      opacity: 0.7;
+      filter: grayscale(30%);
+    }
+
+    .claude-ui-thinking .claude-ui-heading {
+      opacity: 0.8;
+    }
+
+    .claude-ui-thinking .claude-ui-code {
+      opacity: 0.8;
+    }
+
+    /* Thinking indicator badge */
+    .claude-ui-thinking::after {
+      content: 'Thinking...';
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(217, 119, 87, 0.9);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: system-ui, -apple-system, sans-serif;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    /* Hide thinking indicator when enhanced styling applied */
+    .claude-ui-enhanced::after {
+      display: none;
+    }
+
+    /* Transition from thinking to done */
+    .claude-ui-styled {
+      transition: opacity 0.3s ease, filter 0.3s ease;
+    }
+
+    /* Debug mode: show thinking state */
+    .claude-ui-debug .claude-ui-thinking {
+      outline: 2px dashed #d97757 !important;
+      outline-offset: 4px;
+    }
   `;
 
   document.head.appendChild(style);
-  logger.debug('Visual indicator styles injected');
+  logger.debug('Visual indicator styles injected (with thinking state)');
 }
 
 function createStatusBadge() {
@@ -394,6 +440,78 @@ function applyEnhancedStyling(container) {
 }
 
 /**
+ * Handle the visual transition from thinking to done state
+ * Adds a subtle animation to indicate content is now final
+ * @param {HTMLElement} container
+ */
+function handleThinkingTransition(container) {
+  logger.debug('Handling thinking transition for container:', container);
+
+  // Add transition class for animation
+  container.classList.add('claude-ui-thinking-complete');
+
+  // Flash effect to indicate completion
+  const flashOverlay = document.createElement('div');
+  flashOverlay.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(217, 119, 87, 0.1), transparent);
+    pointer-events: none;
+    z-index: 10;
+    animation: claude-thinking-flash 0.5s ease-out;
+  `;
+
+  // Add keyframes if not already present
+  if (!document.getElementById('claude-thinking-animation')) {
+    const style = document.createElement('style');
+    style.id = 'claude-thinking-animation';
+    style.textContent = `
+      @keyframes claude-thinking-flash {
+        0% { opacity: 0; transform: translateX(-100%); }
+        50% { opacity: 1; }
+        100% { opacity: 0; transform: translateX(100%); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Only add flash if container is positioned
+  const computedStyle = window.getComputedStyle(container);
+  if (computedStyle.position === 'static') {
+    container.style.position = 'relative';
+  }
+
+  container.appendChild(flashOverlay);
+
+  // Remove flash overlay after animation
+  setTimeout(() => {
+    flashOverlay.remove();
+    container.classList.remove('claude-ui-thinking-complete');
+  }, 500);
+
+  // Update status badge with transition info
+  if (statusBadge) {
+    const originalText = statusBadge.textContent;
+    statusBadge.textContent = 'Thinking complete ✓';
+    statusBadge.classList.add('visible');
+
+    setTimeout(() => {
+      if (statusBadge) {
+        statusBadge.textContent = originalText;
+        if (!window.CLAUDE_UI_DEBUG) {
+          statusBadge.classList.remove('visible');
+        }
+      }
+    }, 2000);
+  }
+
+  logger.debug('Thinking transition animation applied');
+}
+
+/**
  * Legacy alias for applyEnhancedStyling
  * Maintains backward compatibility with existing code
  * @param {HTMLElement} container - The container to style
@@ -444,26 +562,68 @@ function applyStyling() {
       return;
     }
 
+    // Check thinking/streaming state
+    const isThinking = currentAdapter.handleThinkingState && currentAdapter.isThinking?.(container);
+    const isStreaming = currentAdapter.isStreaming?.(container);
+
     // PHASE 1: Always apply base styling immediately
     const isNewContainer = !container.classList.contains('claude-ui-styled');
     if (isNewContainer) {
       logger.info(`Container ${index}: applying base styling`);
       applyBaseStyling(container);
+
+      // Mark as thinking if in thinking state
+      if (isThinking) {
+        container.classList.add('claude-ui-thinking');
+        logger.info(`Container ${index}: marked as thinking`);
+      }
+
       styledCount++;
     }
 
-    // PHASE 2: Apply enhanced styling or set up watcher
-    const isThinking = currentAdapter.handleThinkingState && currentAdapter.isThinking?.(container);
-    const isStreaming = currentAdapter.isStreaming?.(container);
-
+    // PHASE 2: Handle thinking state transitions
     if (isThinking) {
       logger.info(`Container ${index}: waiting for thinking to complete`);
       pendingCount++;
-      currentAdapter.waitForThinkingComplete(container).then(() => {
-        logger.info(`Container ${index}: thinking complete, applying enhanced styling`);
-        applyEnhancedStyling(container);
-        updateCounts();
-      });
+
+      // Use callback version if available, otherwise fall back to Promise
+      if (currentAdapter.observeThinkingState) {
+        // Set up observer that will trigger when thinking completes
+        currentAdapter.observeThinkingState(container, {
+          onThinkingComplete: (el) => {
+            logger.info(`Container ${index}: thinking complete (via observer)`);
+
+            // Remove thinking class
+            el.classList.remove('claude-ui-thinking');
+
+            // Apply enhanced styling
+            applyEnhancedStyling(el);
+
+            // Trigger transition animation
+            handleThinkingTransition(el);
+
+            updateCounts();
+          }
+        });
+      } else {
+        // Fall back to Promise-based waiting
+        currentAdapter.waitForThinkingComplete(container, {
+          onComplete: (el) => {
+            logger.info(`Container ${index}: thinking complete (via promise)`);
+
+            // Remove thinking class
+            el.classList.remove('claude-ui-thinking');
+
+            // Apply enhanced styling
+            applyEnhancedStyling(el);
+
+            // Trigger transition animation
+            handleThinkingTransition(el);
+
+            updateCounts();
+          }
+        });
+      }
     } else if (isStreaming) {
       logger.info(`Container ${index}: streaming detected, will enhance when complete`);
       pendingCount++;
@@ -583,10 +743,16 @@ function cleanup() {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getStatus') {
+    const containers = document.querySelectorAll('.claude-ui-styled');
+    const thinkingContainers = document.querySelectorAll('.claude-ui-thinking');
+    const enhancedContainers = document.querySelectorAll('.claude-ui-enhanced');
+
     const status = {
       active: !!currentAdapter,
       adapter: currentAdapter?.name,
-      containerCount: document.querySelectorAll('.claude-ui-styled').length,
+      containerCount: containers.length,
+      thinkingCount: thinkingContainers.length,
+      enhancedCount: enhancedContainers.length,
       darkMode: currentAdapter?.detectDarkMode?.() || false,
       url: window.location.href,
       hostname: window.location.hostname

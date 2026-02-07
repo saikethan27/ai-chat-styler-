@@ -64,16 +64,27 @@ const geminiAdapter = {
   /**
    * Wait for thinking to complete before applying final styling
    * @param {HTMLElement} element
-   * @param {number} timeout - Maximum wait time in ms
+   * @param {Object} options - Options object
+   * @param {Function} options.onComplete - Callback when thinking completes
+   * @param {number} options.timeout - Maximum wait time in ms
    * @returns {Promise<void>}
    */
-  async waitForThinkingComplete(element, timeout = 30000) {
-    if (!this.isThinking(element)) return;
+  async waitForThinkingComplete(element, options = {}) {
+    const { onComplete, timeout = 30000 } = options;
+
+    if (!this.isThinking(element)) {
+      if (onComplete) onComplete(element);
+      return;
+    }
 
     return new Promise((resolve) => {
+      let resolved = false;
+
       const observer = new MutationObserver((mutations) => {
-        if (!this.isThinking(element)) {
+        if (!this.isThinking(element) && !resolved) {
+          resolved = true;
           observer.disconnect();
+          if (onComplete) onComplete(element);
           resolve();
         }
       });
@@ -87,10 +98,55 @@ const geminiAdapter = {
 
       // Timeout fallback
       setTimeout(() => {
-        observer.disconnect();
-        resolve();
+        if (!resolved) {
+          resolved = true;
+          observer.disconnect();
+          if (onComplete) onComplete(element);
+          resolve();
+        }
       }, timeout);
     });
+  },
+
+  /**
+   * Observe thinking state changes on an element
+   * @param {HTMLElement} element
+   * @param {Object} callbacks - Callback functions
+   * @param {Function} callbacks.onThinkingStart - Called when thinking starts
+   * @param {Function} callbacks.onThinkingComplete - Called when thinking completes
+   * @returns {MutationObserver} The observer instance
+   */
+  observeThinkingState(element, callbacks = {}) {
+    const { onThinkingStart, onThinkingComplete } = callbacks;
+
+    const observer = new MutationObserver((mutations) => {
+      const wasThinking = element.getAttribute('data-was-thinking') === 'true';
+      const isThinking = this.isThinking(element);
+
+      // Thinking started
+      if (!wasThinking && isThinking && onThinkingStart) {
+        element.setAttribute('data-was-thinking', 'true');
+        onThinkingStart(element);
+      }
+
+      // Thinking completed
+      if (wasThinking && !isThinking && onThinkingComplete) {
+        element.removeAttribute('data-was-thinking');
+        onThinkingComplete(element);
+      }
+    });
+
+    // Set initial state
+    element.setAttribute('data-was-thinking', this.isThinking(element).toString());
+
+    observer.observe(element, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'data-thinking-state']
+    });
+
+    return observer;
   },
 
   /**
