@@ -2,7 +2,7 @@
 
 A Chrome extension that brings Claude's beautiful, readable markdown styling to other AI chat platforms.
 
-![Extension Icon](icons/icon128.png)
+![Extension Icon](src/icons/icon128.png)
 
 ## Features
 
@@ -33,7 +33,7 @@ _Coming soon..._
 2. Open Chrome and navigate to `chrome://extensions/`
 3. Enable "Developer mode" (toggle in top right)
 4. Click "Load unpacked"
-5. Select the extension folder
+5. Select the `src/` folder (contains manifest.json)
 6. The extension icon should appear in your toolbar
 
 ## Usage
@@ -54,22 +54,30 @@ The extension will automatically:
 ### Project Structure
 
 ```
-├── background.js          # Service worker for state management
-├── manifest.json          # Extension manifest
-├── claude_index.css       # Claude color palette and variables
-├── content/
-│   ├── inject.js         # Main content script
-│   ├── observer.js       # MutationObserver for dynamic content
-│   ├── claude-markdown.css # Markdown styling rules
-│   └── adapters/         # Site-specific adapters
-│       ├── gemini.js
-│       ├── kimi.js
-│       └── generic.js
-├── popup/                # Extension popup UI
-│   ├── popup.html
-│   ├── popup.css
-│   └── popup.js
-└── icons/                # Extension icons
+├── src/                       # Core extension code
+│   ├── background.js          # Service worker for state management
+│   ├── manifest.json          # Extension manifest
+│   ├── content/
+│   │   ├── inject.js         # Main content script
+│   │   ├── observer.js       # MutationObserver for dynamic content
+│   │   ├── claude-markdown.css # Markdown styling rules
+│   │   └── adapters/         # Site-specific adapters
+│   │       ├── gemini.js
+│   │       ├── kimi.js
+│   │       └── generic.js
+│   ├── popup/                # Extension popup UI
+│   │   ├── popup.html
+│   │   ├── popup.css
+│   │   └── popup.js
+│   └── icons/                # Extension icons
+├── docs/                      # Documentation
+│   ├── GEMINI_TEST_RESULTS.md
+│   ├── KIMI_TEST_RESULTS.md
+│   └── TOGGLE_THEME_TEST_RESULTS.md
+├── claude_index.css           # Claude color palette (root level)
+├── test.html                  # Local test page
+├── README.md                  # This file
+└── LICENSE                    # MIT License
 ```
 
 ### Building
@@ -111,9 +119,9 @@ Contributions are welcome! Please:
 
 To add support for a new AI chat site:
 
-1. Create a new adapter in `content/adapters/` following the existing pattern
+1. Create a new adapter in `src/content/adapters/` following the existing pattern
 2. Implement `canHandle()`, `getSelectors()`, and `isDarkMode()` methods
-3. Add the adapter to the list in `content/inject.js`
+3. Add the adapter to the list in `src/content/inject.js`
 4. Test thoroughly on the target site
 5. Submit a PR
 
